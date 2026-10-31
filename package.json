@@ -1,0 +1,32 @@
+﻿{
+  "name": "hospital-management-system",
+  "private": true,
+  "packageManager": "npm@12.0.1",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "allowScripts": {
+    "argon2@0.41.1": true,
+    "prisma@5.22.0": true,
+    "@prisma/client@5.22.0": true,
+    "esbuild@0.28.2": true,
+    "@nestjs/core@10.4.22": true,
+    "@prisma/engines@5.22.0": true
+  }
+}

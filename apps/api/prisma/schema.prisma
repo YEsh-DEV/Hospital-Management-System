@@ -1,0 +1,324 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  passwordHash        String
+  fullName            String
+  roleId              Int
+  role                Role                 @relation(fields: [roleId], references: [id])
+  isActive            Boolean              @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  auditLogs           AuditLog[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  doctor              Doctor?
+  assignedLeads       Lead[]
+  assignedTasks       FollowUpTask[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique // SUPER_ADMIN | ADMIN | RECEPTIONIST | DOCTOR | NURSE | AI_SERVICE
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id     Int              @id @default(autoincrement())
+  action String           @unique
+  roles  RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Department {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  code        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+  doctors     Doctor[]
+
+  @@map("departments")
+}
+
+model Service {
+  id              String        @id @default(uuid())
+  departmentId    String
+  department      Department    @relation(fields: [departmentId], references: [id])
+  name            String
+  durationMinutes Int           @default(30)
+  price           Decimal       @default(0)
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  appointments    Appointment[]
+
+  @@map("services")
+}
+
+model Doctor {
+  id              String           @id @default(uuid())
+  userId          String?          @unique
+  user            User?            @relation(fields: [userId], references: [id])
+  departmentId    String
+  department      Department       @relation(fields: [departmentId], references: [id])
+  name            String
+  email           String?
+  phone           String?
+  specialization  String
+  consultationFee Decimal          @default(0)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  schedules       DoctorSchedule[]
+  leaves          DoctorLeave[]
+  appointments    Appointment[]
+
+  @@map("doctors")
+}
+
+model DoctorSchedule {
+  id                  String   @id @default(uuid())
+  doctorId            String
+  doctor              Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek           Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime           String   // e.g. "09:00"
+  endTime             String   // e.g. "17:00"
+  slotDurationMinutes Int      @default(30)
+  breakStart          String?  // e.g. "13:00"
+  breakEnd            String?  // e.g. "14:00"
+  maxCapacity         Int      @default(1)
+  isActive            Boolean  @default(true)
+
+  @@index([doctorId, dayOfWeek])
+  @@map("doctor_schedules")
+}
+
+model DoctorLeave {
+  id        String   @id @default(uuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([doctorId, startDate, endDate])
+  @@map("doctor_leaves")
+}
+
+model Patient {
+  id              String        @id @default(uuid())
+  mrn             String        @unique // Medical Record Number
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  gender          String
+  phone           String
+  normalizedPhone String?
+  email           String?
+  address         String?
+  status          String        @default("ACTIVE") // ACTIVE | INACTIVE
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  appointments    Appointment[]
+  leads           Lead[]
+  callLogs        CallLog[]
+
+  @@index([phone])
+  @@index([normalizedPhone])
+  @@index([email])
+  @@map("patients")
+}
+
+model Appointment {
+  id                 String         @id @default(uuid())
+  patientId          String
+  patient            Patient        @relation(fields: [patientId], references: [id])
+  doctorId           String
+  doctor             Doctor         @relation(fields: [doctorId], references: [id])
+  serviceId          String?
+  service            Service?       @relation(fields: [serviceId], references: [id])
+  department         String
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  status             String         @default("REQUESTED") // REQUESTED | CONFIRMED | CHECKED_IN | COMPLETED | CANCELLED | NO_SHOW
+  source             String         @default("RECEPTION") // RECEPTION | AI_VOICE | ONLINE | ENQUIRY
+  notes              String?
+  cancellationReason String?
+  requestId          String?        @unique
+  deletedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  notifications      Notification[]
+  callLogs           CallLog[]
+
+  @@index([doctorId, scheduledStart, scheduledEnd])
+  @@index([patientId])
+  @@index([status])
+  @@index([scheduledStart])
+  @@map("appointments")
+}
+
+model Lead {
+  id               String         @id @default(uuid())
+  patientId        String?
+  patient          Patient?       @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  name             String
+  phone            String
+  email            String?
+  source           String         @default("PHONE_CALL") // PHONE_CALL | WEBSITE | WALK_IN | AI_RECEPTIONIST
+  status           String         @default("NEW") // NEW | CONTACTED | CONVERTED | CLOSED
+  assignedToUserId String?
+  assignedTo       User?          @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  tasks            FollowUpTask[]
+  callLogs         CallLog[]
+  notifications    Notification[]
+
+  @@index([phone])
+  @@index([status])
+  @@map("leads")
+}
+
+model FollowUpTask {
+  id               String    @id @default(uuid())
+  leadId           String?
+  lead             Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedToUserId String?
+  assignedTo       User?     @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  title            String
+  dueDate          DateTime
+  priority         String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status           String    @default("PENDING") // PENDING | COMPLETED | OVERDUE | CANCELLED
+  notes            String?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("follow_up_tasks")
+}
+
+model CallLog {
+  id               String       @id @default(uuid())
+  callerPhone      String
+  callerName       String?
+  direction        String       @default("INBOUND") // INBOUND | OUTBOUND
+  durationSeconds  Int          @default(0)
+  intent           String?      // APPOINTMENT_BOOKING | DOCTOR_AVAILABILITY | GENERAL_FAQ | EMERGENCY | HUMAN_ESCALATION
+  outcome          String       @default("COMPLETED") // COMPLETED | FAILED | ESCALATED | ABANDONED
+  summary          String?
+  patientId        String?
+  patient          Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  leadId           String?
+  lead             Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  appointmentId    String?
+  appointment      Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  recordingConsent Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+
+  @@index([callerPhone])
+  @@index([outcome])
+  @@index([createdAt])
+  @@map("call_logs")
+}
+
+model Notification {
+  id               String       @id @default(uuid())
+  appointmentId    String?
+  appointment      Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  leadId           String?
+  lead             Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  channel          String       // SMS | EMAIL | WHATSAPP
+  recipient        String       // phone number or email address
+  templateId       String
+  status           String       @default("PENDING") // PENDING | SENT | FAILED
+  providerResponse Json?
+  retryCount       Int          @default(0)
+  createdAt        DateTime     @default(now())
+  sentAt           DateTime?
+
+  @@index([status])
+  @@index([recipient])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id            BigInt   @id @default(autoincrement())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action        String
+  auditableType String
+  auditableId   String
+  oldValues     Json?
+  newValues     Json?
+  ipAddress     String?
+  userAgent     String?
+  performedAt   DateTime @default(now())
+
+  @@index([performedAt])
+  @@index([userId])
+  @@index([action])
+  @@map("audit_logs")
+}

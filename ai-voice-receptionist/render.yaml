@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: medislot-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DATABASE_URL
+        value: sqlite:///./medislot.db
+      - key: HOSPITAL_NAME
+        value: Sample City Hospital
+      - key: HMS_BASE_URL
+        value: https://akhil12.app.n8n.cloud/webhook
+      - key: HMS_PATH_PREFIX
+        value: /hms
+      - key: HMS_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: OPENAI_MODEL
+        value: openai/gpt-oss-120b
+      - key: INTERNAL_API_KEY
+        sync: false
+      - key: TELEPHONY_PROVIDER
+        value: twilio
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: PUBLIC_BASE_URL
+        value: https://medislot-demo.onrender.com
+      - key: SMS_PROVIDER
+        value: twilio
+      - key: EMAIL_PROVIDER
+        value: mock
+      - key: REMINDERS_ENABLED
+        value: "true"
+      - key: REMINDER_LOOP_ENABLED
+        value: "true"

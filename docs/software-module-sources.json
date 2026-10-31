@@ -1,0 +1,57 @@
+{
+  "reviewedDate": "2026-10-27",
+  "repository": "https://github.com/advfictiondigitallabs-byte/Hospital-Management-System-",
+  "source": "local remote-tracking references; no remote fetch",
+  "main": "e41d7177ef35fd561a500988af985a51ea50e6e8",
+  "sources": [
+    {
+      "branch": "auth-and-audit-logs",
+      "commit": "6ac21d1ae12080a294b4e49c027d3571ee9c701c",
+      "tree": "13b074a4ed0b54702e114cdf6570d9e4a9cfdba4"
+    },
+    {
+      "branch": "feature/doctor-schedule-availability-api",
+      "commit": "b29c04f96affe0be28e30966adcf3db4cec7b9f5",
+      "tree": "03944ccb7c5982cf90c4c9f1b4281e2a5e9f374b"
+    },
+    {
+      "branch": "module-3/departments-services+settings",
+      "commit": "49162e1bd36e1392a41598e529925eff3b0ed875",
+      "tree": "db2c427470b348bfe1494226e2d95ba3847d09c2"
+    },
+    {
+      "branch": "feature/patient-&-call-overview-module",
+      "commit": "71086a51c06667daefb309dd0bfab1ae4f39ed39",
+      "tree": "8a5ca415cceef9e4f59d82d778c6535c938bd895"
+    },
+    {
+      "branch": "module5/leads-enquiries+follow-uptasks",
+      "commit": "07d3c7f73ea70490f7c09c46b64a921411857e61",
+      "tree": "5fcbec4ad2e67eda93197a42463c6a3bef01ea5c"
+    },
+    {
+      "branch": "feature/dashboard-reports",
+      "commit": "e8ab33bde76f319a5fff663944dc627a6d848a62",
+      "tree": "7160e1494c454275f71beea654313d178cc38341"
+    },
+    {
+      "branch": "feature/appointemnts-module",
+      "commit": "e41d7177ef35fd561a500988af985a51ea50e6e8",
+      "tree": "8c6b3b329b5f4651db7170979c6d3319d5664802"
+    },
+    {
+      "branch": "module7/standalone-module",
+      "commit": "9c7295e619c654444cbfbc0ffcff81a48dc51bc7",
+      "tree": "5258047790494cbd9e9fc69edc409a47ff9ea8c9"
+    }
+  ],
+  "excludedBranches": [
+    "feature/ai-voice-receptionist-notifications"
+  ],
+  "integratedFoundationOnly": "auth-and-audit-logs",
+  "remainingModulesWired": true,
+  "integrationMode": "single-active-tab fictional-data demo",
+  "runnableApplication": "apps/demo",
+  "backendIntegrationComplete": false,
+  "sourceIntegration": "Selective source ports; only auth ancestry was merged"
+}

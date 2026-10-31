@@ -1,7 +1,7 @@
-﻿"""
+"""
 Interactive Client Demonstration Runner for MediSlot / HealthPulse AI Voice Receptionist.
 Enables presenting realistic, live conversational journeys (appointment booking, doctor inquiries,
-emergency triage, and FAQ resolution) directly in the terminal without active Twilio telephony.
+emergency triage, insurance/cashless guidance, and FAQ resolution) directly in the terminal without active Twilio telephony.
 """
 from __future__ import annotations
 
@@ -33,21 +33,28 @@ DEMO_SCENARIOS = [
         ]
     },
     {
-        "title": "Emergency Guardrail Demonstration (Acute Triage Redirection)",
+        "title": "Emergency Guardrail Demonstration (Acute Chest Pain Triage Redirection)",
         "turns": [
             "Help, my father is having severe chest pain and cannot breathe properly!",
         ]
     },
     {
-        "title": "Hospital FAQ & Operations Inquiry",
+        "title": "Cashless Insurance & TPA Hospitalization Inquiry",
         "turns": [
-            "What are your outpatient visiting hours and where is the hospital located?",
+            "Do you accept Star Health or HDFC ERGO cashless insurance, and where is the TPA desk?",
+            "Thank you! What are the inpatient visiting hours for family members?",
+        ]
+    },
+    {
+        "title": "24x7 Pharmacy & Diagnostic Lab Reports Inquiry",
+        "turns": [
+            "Is your hospital pharmacy open 24 hours at night, and when can I collect blood test reports?",
         ]
     },
     {
         "title": "Human Staff Handoff / Callback Escalation",
         "turns": [
-            "I want to speak with a human receptionist right now regarding my insurance approval.",
+            "I want to speak with a human receptionist right now regarding a complex bill discrepancy.",
         ]
     }
 ]
@@ -142,19 +149,24 @@ def main():
     
       1. Clinical Booking Journey (Doctor Inquiry + Slot Confirmation)
       2. Emergency Guardrail (Acute Chest Pain Triage Redirection)
-      3. Hospital Operations & Approved FAQs
-      4. Human Receptionist Handoff / Escalation
-      5. Free-form Interactive Conversation
-      6. Exit
+      3. Cashless Insurance & TPA Hospitalization Inquiry
+      4. 24x7 Pharmacy & Diagnostic Lab Reports Inquiry
+      5. Human Receptionist Handoff / Escalation
+      6. Free-form Interactive Live Voice/Chat
+      7. Exit
     ======================================================================
     """)
-    choice = input("Enter option (1-6): ").strip()
-    if choice in ("1", "2", "3", "4"):
+    try:
+        choice = input("Enter choice (1-7): ").strip()
+    except (KeyboardInterrupt, EOFError):
+        return
+
+    if choice in ("1", "2", "3", "4", "5"):
         asyncio.run(run_scenario(int(choice) - 1))
-    elif choice == "5":
+    elif choice == "6":
         asyncio.run(interactive_mode())
     else:
-        print("Exiting.")
+        print("Demo simulation session exited.")
 
 
 if __name__ == "__main__":

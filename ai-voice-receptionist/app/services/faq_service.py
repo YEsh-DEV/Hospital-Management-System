@@ -8,13 +8,22 @@ from pathlib import Path
 
 class FaqService:
     def __init__(self, path: str):
-        self.path = Path(path)
+        p = Path(path)
+        if not p.exists():
+            pkg_path = Path(__file__).resolve().parent.parent / "data" / p.name
+            if pkg_path.exists():
+                p = pkg_path
+            else:
+                alt = Path("ai-voice-receptionist") / path
+                if alt.exists():
+                    p = alt
+        self.path = p
         self._faqs: list[dict] = []
         self.reload()
 
     def reload(self) -> None:
         try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
+            data = json.loads(self.path.read_text(encoding="utf-8-sig"))
             self._faqs = list(data.get("faqs", []))
         except (OSError, ValueError):
             self._faqs = []

@@ -19,7 +19,7 @@
       "id": "departments",
       "topic": "Available departments",
       "keywords": ["department", "departments", "specialty", "specialties", "speciality", "services", "treat"],
-      "answer": "SAMPLE: General Medicine, Pediatrics, Cardiology, Dermatology and Orthopedics. For the live list of doctors and specialties I can check the hospital system for you.",
+      "answer": "SAMPLE: General Medicine, Pediatrics, Cardiology, Dermatology, and Orthopedics. For the live list of doctors and specialties I can check the hospital system for you.",
       "verified": false
     },
     {
@@ -27,6 +27,34 @@
       "topic": "Appointment booking process",
       "keywords": ["book", "booking", "appointment", "schedule", "process", "how", "reserve", "cancel", "reschedule"],
       "answer": "SAMPLE: You can book by telling me the specialty or doctor, your preferred date and time, your name and phone number. I will check live availability, read the details back, and book only after you confirm. A confirmation message is sent after the booking is confirmed.",
+      "verified": false
+    },
+    {
+      "id": "insurance_cashless",
+      "topic": "Cashless Insurance and TPA Desk",
+      "keywords": ["insurance", "cashless", "tpa", "mediclaim", "star", "hdfc", "care", "claim", "reimbursement", "policy"],
+      "answer": "SAMPLE: We support cashless hospitalization for all major insurance providers including Star Health, HDFC ERGO, Care Health, ICICI Lombard, and Medi Assist TPA. The TPA insurance helpdesk is located on the ground floor next to admissions.",
+      "verified": false
+    },
+    {
+      "id": "emergency_trauma",
+      "topic": "24x7 Emergency and Trauma Services",
+      "keywords": ["emergency", "ambulance", "trauma", "casualty", "icu", "critical", "urgent", "24x7", "night"],
+      "answer": "SAMPLE: Our Emergency and Trauma Centre operates 24 hours every day with round-the-clock emergency doctors, resuscitation units, and advanced cardiac life-support ambulances. For critical emergencies, call 112 immediately.",
+      "verified": false
+    },
+    {
+      "id": "pharmacy_diagnostic_lab",
+      "topic": "24x7 In-House Pharmacy and Diagnostic Laboratory",
+      "keywords": ["pharmacy", "medicine", "medicines", "lab", "laboratory", "blood", "test", "reports", "scan", "xray", "mri", "ultrasound"],
+      "answer": "SAMPLE: The hospital pharmacy is open 24x7 on the ground floor. Our diagnostic pathology laboratory and radiology imaging centre operate from 7:00 AM to 8:00 PM, with automated digital report delivery to your registered phone.",
+      "verified": false
+    },
+    {
+      "id": "visiting_hours",
+      "topic": "Inpatient and ICU Visiting Hours",
+      "keywords": ["visitor", "visiting", "visit", "ward", "icu", "patient", "attendant", "hours", "family"],
+      "answer": "SAMPLE: General inpatient ward visiting hours are 4:00 PM to 7:00 PM daily. ICU visiting is strictly restricted to one immediate attendant between 11:00 AM to 12:00 PM and 5:00 PM to 6:00 PM to maintain sterile infection control.",
       "verified": false
     },
     {

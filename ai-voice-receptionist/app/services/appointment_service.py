@@ -1,4 +1,4 @@
-"""Business operations on top of the HMS client: availability, safe booking, verified cancellation.
+﻿"""Business operations on top of the HMS client: availability, safe booking, verified cancellation.
 
 Safety rules implemented here:
   * Booking is recorded as 'in_flight' BEFORE the POST, so a crash/timeout can never lead to a blind re-submit.
@@ -98,7 +98,7 @@ class AppointmentService:
         key = hashlib.sha256(f"{patient_phone}|{doctor_id}|{date}|{start_time}".encode()).hexdigest()
         existing = self.repo.get_by_key(key)
         if existing is not None:
-            if existing.status in ("confirmed", "pending"):
+            if existing.status in ("confirmed", "pending", "requested"):
                 return self._result("duplicate", existing, "This appointment was already booked; not booking it again.")
             if existing.status in ("in_flight", "uncertain"):
                 return self._result("uncertain", existing,
@@ -106,8 +106,27 @@ class AppointmentService:
                                     "It will not be submitted again automatically.", handoff=True)
         op = self.repo.begin_operation(key, call_id=call_id, doctor_id=doctor_id, date=date, start_time=start_time,
                                        patient_name=patient_name, patient_phone=patient_phone)
-        body = {"doctor_id": doctor_id, "date": date, "start_time": start_time, "patient_name": patient_name,
-                "patient_phone": patient_phone, "status": "confirmed"}
+        
+        # Dual-contract payload: supports both NestJS CreateBookingRequestDto and n8n webhook/mock
+        slot_start_iso = f"{date}T{start_time}:00+05:30"
+        body = {
+            # NestJS API fields:
+            "doctorId": doctor_id,
+            "patientPhone": patient_phone,
+            "patientName": patient_name,
+            "preferredDate": date,
+            "slotStart": slot_start_iso,
+            "source": "AI_VOICE",
+            "requestId": op.id,
+            # n8n / Mock HMS backward-compatibility:
+            "doctor_id": doctor_id,
+            "date": date,
+            "start_time": start_time,
+            "patient_name": patient_name,
+            "patient_phone": patient_phone,
+            "status": "confirmed",
+        }
+
         try:
             payload = await self.hms.create_appointment(body, idempotency_key=op.id)
         except HMSUnavailable:
@@ -123,13 +142,15 @@ class AppointmentService:
         except HMSHTTPError as e:
             if e.status_code == 409 or e.code == "SLOT_TAKEN" or (e.status_code in (400, 422) and _CONFLICT_WORDS.search(e.message or "")):
                 self.repo.update(op.id, status="conflict", error=(e.message or "slot taken")[:290])
-                alts = e.alternatives or await self._alternatives(doctor_id, date)  # prefer the backend's own suggestions
+                alts = e.alternatives or await self._alternatives(doctor_id, date)
                 return self._result("conflict", self.repo.get_by_key(key), "That slot is no longer available.", alternatives=alts)
             self.repo.update(op.id, status="failed", error=(e.message or f"HTTP {e.status_code}")[:290])
             await self._alert_failure("booking_failed", op.id, call_id)
             return self._result("failed", self.repo.get_by_key(key), e.message or "The hospital system rejected the booking.", handoff=True)
 
-        data = payload.get("data") if isinstance(payload, dict) else None
+        # Support both wrapped { data: { id: ... } } and direct NestJS { id: ... } responses
+        data = payload.get("data") if (isinstance(payload, dict) and isinstance(payload.get("data"), dict)) else payload
+
         if isinstance(payload, dict) and payload.get("success") is False:
             msg = str(payload.get("message") or payload.get("error") or "")
             if _CONFLICT_WORDS.search(msg):
@@ -146,9 +167,12 @@ class AppointmentService:
             return self._result("uncertain", self.repo.get_by_key(key), "The booking response could not be verified.", handoff=True)
 
         hms_status = str(data.get("status", "")).lower()
-        status = "confirmed" if hms_status == "confirmed" else "pending"
-        self.repo.update(op.id, status=status, appointment_id=str(data["id"]), doctor_name=data.get("doctor_name"),
-                         end_time=data.get("end_time"))
+        status = "confirmed" if hms_status in ("confirmed", "requested", "scheduled") else "pending"
+        doc_name = data.get("doctor_name") or (data.get("doctor", {}).get("name") if isinstance(data.get("doctor"), dict) else None)
+        end_time_val = data.get("end_time") or data.get("scheduledEnd")
+
+        self.repo.update(op.id, status=status, appointment_id=str(data["id"]), doctor_name=doc_name,
+                         end_time=end_time_val)
         row = self.repo.get_by_key(key)
         if status == "confirmed":
             await self._after_confirmed(row)
@@ -195,10 +219,8 @@ class AppointmentService:
 
     # ------------------------------------------------------------------ cancellation
     def verify_cancellation(self, appointment_id: str, patient_name: str, patient_phone: str) -> dict | None:
-        """Only appointments booked through MediSlot can be verified locally (HMS has no lookup endpoint).
-        Returns the booking row summary if name AND phone match, else None."""
         row = self.repo.get_by_appointment(appointment_id)
-        if row is None or row.status not in ("confirmed", "pending"):
+        if row is None or row.status not in ("confirmed", "pending", "requested"):
             return None
         if row.patient_phone != patient_phone or row.patient_name.casefold() != " ".join(patient_name.split()).casefold():
             return None
@@ -217,9 +239,11 @@ class AppointmentService:
             return {"status": "not_found" if e.status_code == 404 else "failed",
                     "message": e.message or f"The hospital system rejected the cancellation ({e.status_code}).",
                     "handoff_needed": e.status_code != 404}
-        data = payload.get("data") if isinstance(payload, dict) else None
+        
+        data = payload.get("data") if (isinstance(payload, dict) and isinstance(payload.get("data"), dict)) else payload
         ok = isinstance(payload, dict) and payload.get("success") is not False and (
             (isinstance(data, dict) and str(data.get("status", "")).lower() in ("cancelled", "canceled"))
+            or str(payload.get("status", "")).lower() in ("cancelled", "canceled")
             or payload.get("success") is True)
         if not ok:
             return {"status": "failed", "message": "The hospital system did not confirm the cancellation.",

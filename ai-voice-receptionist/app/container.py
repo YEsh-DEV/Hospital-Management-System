@@ -1,4 +1,4 @@
-"""Dependency wiring. Tests build a Container with fakes; production builds it from Settings."""
+﻿"""Dependency wiring. Tests build a Container with fakes; production builds it from Settings."""
 from __future__ import annotations
 
 import logging
@@ -93,8 +93,8 @@ def build_container(settings: Settings, *, hms_transport: httpx.AsyncBaseTranspo
     notifications = NotificationService(settings, NotificationRepository(sf), email, sms)
     reminders = ReminderService(settings, ReminderRepository(sf), notifications)
     appointments = AppointmentService(settings, hms, BookingRepository(sf), notifications, reminders)
-    handoff = HandoffService(callbacks, notifications)
-    summaries = SummaryService(calls, notifications, settings.retain_transcripts)
+    handoff = HandoffService(callbacks, notifications, hms=hms)
+    summaries = SummaryService(calls, notifications, settings.retain_transcripts, hms=hms)
     tools = ToolExecutor(appointments, FaqService(settings.faq_path), handoff)
     receptionist = ReceptionistService(settings, llm, tools, calls)
     voice = VoiceService(settings, calls, receptionist, summaries)

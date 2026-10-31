@@ -1,4 +1,4 @@
-"""HTTP client for the existing HMS (n8n) API. Contains NO conversation logic.
+﻿"""HTTP client for the authoritative HMS (NestJS) and n8n webhook API. Contains NO conversation logic.
 
 Error model (important for booking safety):
   HMSHTTPError       - server answered with a 4xx: the request was definitively rejected.
@@ -49,7 +49,7 @@ class HMSHTTPError(HMSError):
             det = err.get("details") if isinstance(err, dict) else None
             alts = det.get("alternatives") if isinstance(det, dict) else None
             if isinstance(alts, list):
-                return [a[:5] for a in alts if isinstance(a, str) and _SLOT_RE.match(a)]
+                return [a[:5] for a in alts if isinstance(a, str) and _SLOT_RE.search(a)]
         return []
 
     @property
@@ -72,7 +72,7 @@ class HMSOutcomeUnknown(HMSError):
     pass
 
 
-_SLOT_RE = re.compile(r"^(\d{2}:\d{2})")
+_SLOT_RE = re.compile(r"(\d{2}:\d{2})")
 
 
 class HMSClient:
@@ -80,7 +80,7 @@ class HMSClient:
                  transport: httpx.AsyncBaseTransport | None = None, backoff: float = 0.3,
                  path_prefix: str = "/hms"):
         self.base_url = base_url.rstrip("/")
-        self.prefix = path_prefix.rstrip("/")
+        self.prefix = path_prefix.rstrip("/") if path_prefix else ""
         self._api_key = api_key
         self.get_retries = get_retries
         self.backoff = backoff
@@ -91,7 +91,11 @@ class HMSClient:
 
     # ------------- low-level -------------
     def _headers(self, idempotency_key: str | None = None) -> dict[str, str]:
-        h = {"x-api-key": self._api_key, "Content-Type": "application/json"}
+        h: dict[str, str] = {"Content-Type": "application/json"}
+        if self._api_key:
+            h["x-api-key"] = self._api_key
+            # Also send Bearer token for NestJS JwtAuthGuard
+            h["Authorization"] = f"Bearer {self._api_key}"
         if idempotency_key:
             h["Idempotency-Key"] = idempotency_key
         return h
@@ -140,35 +144,79 @@ class HMSClient:
             raise HMSHTTPError(resp.status_code, self._parse(resp))
         return self._parse(resp)
 
-    # ------------- endpoints (as documented in the integration guide) -------------
+    # ------------- endpoints -------------
     async def list_doctors(self, specialty: str | None = None) -> DoctorList:
         params: dict[str, Any] = {"active": "true"}
         if specialty:
             params["specialty"] = specialty
-        return parse_doctors(await self._get(f"{self.prefix}/doctors", params))
+            params["department"] = specialty
+        path = f"{self.prefix}/doctors" if self.prefix else "/doctors"
+        try:
+            res = await self._get(path, params)
+        except HMSHTTPError as e:
+            if e.status_code == 404 and self.prefix:
+                res = await self._get("/doctors", params)
+            else:
+                raise
+        return parse_doctors(res)
 
     async def get_availability(self, date: str, doctor_id: str | None = None,
                                specialty: str | None = None) -> tuple[list[DoctorAvailability], Any]:
         params: dict[str, Any] = {"date": date}
         if doctor_id:
             params["doctor_id"] = doctor_id
+            params["doctorId"] = doctor_id
         elif specialty:
             params["specialty"] = specialty
-        payload = await self._get(f"{self.prefix}/availability", params)
+            params["department"] = specialty
+        path = f"{self.prefix}/availability" if self.prefix else "/api/availability"
+        try:
+            payload = await self._get(path, params)
+        except HMSHTTPError as e:
+            if e.status_code == 404 and self.prefix != "/api":
+                payload = await self._get("/api/availability", params)
+            else:
+                raise
         return parse_availability(payload, date), payload
 
     async def create_appointment(self, body: dict, idempotency_key: str) -> Any:
-        return await self._write("POST", f"{self.prefix}/appointments", body, idempotency_key)
+        path = f"{self.prefix}/appointments" if self.prefix else "/api/appointments"
+        return await self._write("POST", path, body, idempotency_key)
 
-    async def cancel_appointment(self, appointment_id: str) -> Any:
-        return await self._write("PATCH", f"{self.prefix}/appointments/{appointment_id}", {"status": "cancelled"})
+    async def cancel_appointment(self, appointment_id: str, reason: str = "Patient requested cancellation") -> Any:
+        if self.prefix == "/api":
+            return await self._write("POST", f"{self.prefix}/appointments/{appointment_id}/cancel", {"reason": reason})
+        return await self._write("PATCH", f"{self.prefix}/appointments/{appointment_id}", {"status": "cancelled", "reason": reason})
+
+    # ------------- Telephony & CRM Synchronization -------------
+    async def create_call_log(self, payload: dict) -> Any:
+        path = f"{self.prefix}/call-logs" if self.prefix else "/api/call-logs"
+        try:
+            return await self._write("POST", path, payload)
+        except Exception as exc:
+            log.warning("Could not persist call log to HMS backend: %s", exc)
+            return None
+
+    async def create_crm_lead(self, payload: dict) -> Any:
+        path = f"{self.prefix}/leads" if self.prefix else "/api/leads"
+        try:
+            return await self._write("POST", path, payload)
+        except Exception as exc:
+            log.warning("Could not persist CRM lead to HMS backend: %s", exc)
+            return None
+
+    async def create_follow_up_task(self, payload: dict) -> Any:
+        path = f"{self.prefix}/follow-up-tasks" if self.prefix else "/api/follow-up-tasks"
+        try:
+            return await self._write("POST", path, payload)
+        except Exception as exc:
+            log.warning("Could not persist follow-up task to HMS backend: %s", exc)
+            return None
 
 
 # ---------------- tolerant response parsing ----------------
-# The exact list/availability response shapes are not fully documented, so the parsers accept the
-# common shapes. VALIDATE against the live service (see README "Validate the HMS contract").
 def _unwrap(payload: Any) -> Any:
-    if isinstance(payload, dict) and "data" in payload:
+    if isinstance(payload, dict) and "data" in payload and isinstance(payload["data"], (list, dict)):
         return payload["data"]
     return payload
 
@@ -197,11 +245,15 @@ def parse_doctors(payload: Any) -> DoctorList:
     for d in raw_doctors:
         if not isinstance(d, dict):
             continue
-        did = _first(d, "id", "doctor_id")
+        did = _first(d, "id", "doctor_id", "doctorId")
         name = _first(d, "name", "doctor_name", "full_name")
+        spec = _first(d, "specialty", "specialization")
+        if not spec and isinstance(d.get("department"), dict):
+            spec = d["department"].get("name")
+        elif not spec and isinstance(d.get("department"), str):
+            spec = d["department"]
         if did and name:
-            doctors.append(Doctor(id=str(did), name=str(name),
-                                  specialty=_first(d, "specialty", "specialization", "department")))
+            doctors.append(Doctor(id=str(did), name=str(name), specialty=spec))
     if not specialties:
         specialties = sorted({d.specialty for d in doctors if d.specialty})
     return DoctorList(doctors=doctors, specialties=specialties)
@@ -211,15 +263,19 @@ def _slots(raw: Any) -> list[str]:
     out: list[str] = []
     for item in raw or []:
         if isinstance(item, str):
-            m = _SLOT_RE.match(item)
+            m = _SLOT_RE.search(item)
             if m:
                 out.append(m.group(1))
         elif isinstance(item, dict):
             if item.get("available") is False or str(item.get("status", "")).lower() in ("booked", "unavailable"):
                 continue
             t = _first(item, "start_time", "time", "start")
-            if isinstance(t, str) and _SLOT_RE.match(t):
-                out.append(_SLOT_RE.match(t).group(1))
+            if isinstance(t, str):
+                if "T" in t:
+                    t = t.split("T")[1]
+                m = _SLOT_RE.search(t)
+                if m:
+                    out.append(m.group(1))
     return out
 
 
@@ -232,20 +288,25 @@ def parse_availability(payload: Any, date: str) -> list[DoctorAvailability]:
                 visit(n, inherited)
         elif isinstance(node, dict):
             ctx = dict(inherited)
-            did = _first(node, "doctor_id", "id")
+            did = _first(node, "doctor_id", "id", "doctorId")
             if did:
                 ctx["doctor_id"] = str(did)
-            name = _first(node, "doctor_name", "name")
+            name = _first(node, "doctor_name", "name", "doctorName")
             if name:
                 ctx["doctor_name"] = str(name)
-            spec = _first(node, "specialty", "specialization")
+            spec = _first(node, "specialty", "specialization", "department", "departmentName")
             if spec:
                 ctx["specialty"] = str(spec)
-            slots_raw = node.get("slots", node.get("available_slots"))
+            
+            slots_raw = node.get("slots") if "slots" in node else (node.get("available_slots") if "available_slots" in node else node.get("availableSlots"))
             if slots_raw is not None:
                 results.append(DoctorAvailability(
-                    doctor_id=ctx.get("doctor_id"), doctor_name=ctx.get("doctor_name"),
-                    specialty=ctx.get("specialty"), date=str(node.get("date") or date), slots=_slots(slots_raw)))
+                    doctor_id=ctx.get("doctor_id"),
+                    doctor_name=ctx.get("doctor_name"),
+                    specialty=ctx.get("specialty"),
+                    date=str(node.get("date") or date),
+                    slots=_slots(slots_raw),
+                ))
                 return
             for key in ("doctors", "availability", "results", "data"):
                 if key in node:

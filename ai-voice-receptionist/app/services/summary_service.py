@@ -1,8 +1,9 @@
-"""Structured call summaries built from server-side facts (not from model claims)."""
+﻿"""Structured call summaries built from server-side facts (not from model claims)."""
 from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 
 from app.models.schemas import CallSummary, SessionState
 from app.repositories.call_repository import CallRepository
@@ -35,8 +36,8 @@ def pick_intent(intents: list[str]) -> str:
 
 
 class SummaryService:
-    def __init__(self, calls: CallRepository, notifications: NotificationService, retain_transcripts: bool):
-        self.calls, self.notifications, self.retain = calls, notifications, retain_transcripts
+    def __init__(self, calls: CallRepository, notifications: NotificationService, retain_transcripts: bool, hms: Any = None):
+        self.calls, self.notifications, self.retain, self.hms = calls, notifications, retain_transcripts, hms
 
     def build(self, call_id: str, final: bool = False) -> CallSummary:
         row = self.calls.get(call_id)
@@ -58,7 +59,7 @@ class SummaryService:
                            summary=text, final=final)
 
     async def finalize(self, call_id: str) -> CallSummary:
-        """Idempotent: complete the call, store the summary, purge transcript, send summary once."""
+        """Idempotent: complete the call, store the summary, purge transcript, send summary once, sync to HMS."""
         row = self.calls.get(call_id)
         if row is None:
             raise KeyError(call_id)
@@ -67,9 +68,28 @@ class SummaryService:
         summary = self.build(call_id, final=True)
         state = self.calls.load_state(call_id)
         self.calls.complete(call_id, summary.model_dump(), purge_transcript=not self.retain, state=state)
+        
+        # Send internal email/SMS summary
         try:
             await self.notifications.send_call_summary(summary.model_dump())
             self.calls.mark_summary_sent(call_id)
         except Exception:  # noqa: BLE001
             log.exception("sending call summary failed")
+
+        # Synchronize call log to authoritative HMS backend (POST /api/call-logs)
+        if self.hms and hasattr(self.hms, "create_call_log"):
+            try:
+                duration = int((row.ended_at - row.started_at).total_seconds()) if (row.ended_at and row.started_at) else 60
+                call_log_payload = {
+                    "callerPhone": row.caller_number or "+919999999999",
+                    "direction": "INBOUND",
+                    "durationSeconds": max(duration, 1),
+                    "intent": summary.caller_intent.upper() if summary.caller_intent else "APPOINTMENT_BOOKING",
+                    "outcome": "COMPLETED" if summary.outcome in ("appointment_confirmed", "information_provided") else "ESCALATED",
+                    "summary": summary.summary,
+                }
+                await self.hms.create_call_log(call_log_payload)
+            except Exception as exc:
+                log.warning("Could not sync call log to HMS backend: %s", exc)
+
         return summary

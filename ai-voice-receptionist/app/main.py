@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import callbacks, chat, summaries, voice_webhooks
+from app.api import callbacks, chat, demo_web, summaries, voice_webhooks
 from app.config import Settings, get_settings
 from app.container import Container, build_container
 from app.logging_config import configure_logging
@@ -43,7 +43,7 @@ def create_app(settings: Settings | None = None, container: Container | None = N
         allow_headers=["*"],
     )
     app.add_middleware(RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute)
-    for r in (chat.router, voice_webhooks.router, callbacks.router, summaries.router):
+    for r in (chat.router, voice_webhooks.router, callbacks.router, summaries.router, demo_web.router):
         app.include_router(r)
 
     @app.get("/health", tags=["system"])

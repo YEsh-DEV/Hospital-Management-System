@@ -169,3 +169,11 @@ def test_production_refuses_mock_telephony(tmp_path):
     s = make_settings(tmp_path, app_env="production", telephony_provider="mock")
     with pytest.raises(RuntimeError):
         build_container(s)
+
+
+def test_demo_web_console_available(client):
+    tcl, _ = client
+    r1 = tcl.get("/demo")
+    assert r1.status_code == 200 and "<!DOCTYPE html>" in r1.text and "HealthPulse" in r1.text
+    r2 = tcl.get("/")
+    assert r2.status_code == 200 and "<!DOCTYPE html>" in r2.text

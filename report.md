@@ -152,27 +152,69 @@ Select a demo journey to showcase to your client:
 
 ---
 
-## 5. Client Presentation Playbook
+### 4.4 Web-Based AI Voice Receptionist Console (`http://localhost:8000/demo`)
+In addition to the terminal simulator, a dedicated browser-based demonstration console is served directly by the AI service at `http://localhost:8000/demo` (and `http://localhost:8000/`):
+- **Voice Microphone Input**: Integrated with the browser's Web Speech API (`SpeechRecognition`) for live voice talking.
+- **Audio Voice Output**: Uses native speech synthesis (`SpeechSynthesisUtterance`) to speak replies aloud in natural Indian English.
+- **5 One-Click Journey Triggers**: Instant buttons to demonstrate booking, emergency 112 triage, cashless insurance, 24x7 pharmacy, and human handoff.
+- **Live HMS Synchronization Card**: Shows real-time session ID, booking reference ID, and direct deep-links to the Next.js web portal.
 
-Follow these quick steps when conducting a live client presentation:
+---
 
-1. **Terminal 1 (Backend Services)**:
-   ```powershell
-   # Start the authoritative API and Web Portal
-   .\scripts\demo-start.bat
-   ```
-   - Web Portal: `http://localhost:3000`
-   - NestJS API: `http://localhost:4000/api`
+## 5. Step-by-Step Manual Testing & Client Presentation Playbook
 
-2. **Terminal 2 (AI Voice Receptionist Demonstration)**:
-   ```cmd
-   # Double-click or run from root:
-   demo-ai-voice.bat
-   ```
-   - Press `1` to demonstrate full appointment booking.
-   - Show how the confirmed appointment instantly appears in the Next.js web portal under the Receptionist or Doctor dashboard.
-   - Press `2` to demonstrate emergency triage safety.
-   - Press `3` to demonstrate hospital operations and cashless insurance.
+Follow these exact steps to test the system manually and deliver an impressive, professional demonstration to the client:
+
+### Step 1: Launch the Full-Stack Monorepo (1-Click)
+Double-click or run from PowerShell:
+```cmd
+demo-all.bat
+```
+*(or run `.\demo-all.ps1` in PowerShell)*
+
+This automatically boots up all 3 tiers in parallel:
+1. **NestJS Authoritative API**: `http://localhost:4000/api`
+2. **Next.js Web Portal**: `http://localhost:3000`
+3. **AI Voice Receptionist Console**: `http://localhost:8000/demo`
+
+---
+
+### Step 2: Log into the Next.js Administrative Portal
+1. Open your browser at `http://localhost:3000`.
+2. Click **Receptionist** on the persona picker (or enter `reception@hospital.com` / `SuperSecret123#`).
+3. Click **Sign In**.
+4. You will land on the reception dashboard. In the left sidebar, notice **Appointments** and **Leads & Calls**.
+
+---
+
+### Step 3: Trigger the AI Voice Receptionist
+Place the browser windows side-by-side:
+- **Left Window**: AI Voice Receptionist Console (`http://localhost:8000/demo`)
+- **Right Window**: Next.js Web Portal (`http://localhost:3000`)
+
+#### Demonstration Journey A: Outpatient Doctor Booking
+1. On the left window (`http://localhost:8000/demo`), click **"1. Outpatient Booking"** (or click **Speak** and say: *"I need an appointment with Dr. Rahul Menon tomorrow morning"*).
+2. The AI replies with available slots and asks for confirmation.
+3. The booking confirms, and the AI outputs the booking reference (e.g. `APT-MOCK-...`).
+4. Now switch to the right window (`http://localhost:3000/appointments`):
+   - Click **Refresh** or filter by status.
+   - **Show the Client:** The newly booked appointment appears in the table with the distinctive blue **`AI Receptionist`** badge!
+
+#### Demonstration Journey B: Emergency Safety Redirection
+1. On `http://localhost:8000/demo`, click **"2. Emergency 112 Triage"** (or say: *"Help, my father has severe chest pain"*).
+2. **Show the Client:** The AI immediately halts medical advice and directs the caller to dial 112 or visit the Emergency Trauma Centre right away.
+
+#### Demonstration Journey C: Cashless Insurance & TPA Desk
+1. On `http://localhost:8000/demo`, click **"3. Cashless Insurance & TPA"**.
+2. **Show the Client:** The AI accurately lists supported insurance tie-ups (Star Health, HDFC ERGO, Care Health, ICICI Lombard) and directs them to the ground-floor admissions desk.
+
+#### Demonstration Journey D: Staff Escalation & CRM Task Creation
+1. On `http://localhost:8000/demo`, click **"5. Staff Callback Handoff"** (or say: *"I want to talk to a human receptionist"*).
+2. The AI confirms a staff callback has been requested.
+3. Switch to the right window (`http://localhost:3000/leads-calls`):
+   - Under the **"Enquiry Leads"** tab: Show the newly logged lead.
+   - Under the **"Callback Tasks"** tab: Show the urgent follow-up task assigned to the front desk.
+   - Under the **"Reception Call Logs"** tab: Show the recorded call log with timestamp, caller phone number, duration, and summary.
 
 ---
 
@@ -181,5 +223,5 @@ Follow these quick steps when conducting a live client presentation:
 - **Monorepo State**: Clean, stable, and completely synchronized.
 - **Remote Repository**: `https://github.com/YEsh-DEV/Hospital-Management-System.git`
 - **Active Branch**: `main`
-- **Total Tests Verified**: **127 automated tests passing** (44 NestJS Jest tests + 83 Python pytest tests).
+- **Total Tests Verified**: **128 automated tests passing** (44 NestJS Jest tests + 84 Python pytest tests).
 - **Code Integrity**: Software architecture was strictly maintained without modifications; all AI integration enhancements are fully documented, tested, and ready for client delivery.

@@ -77,6 +77,18 @@ def build_mock_transport() -> httpx.MockTransport:
             appt["status"] = "cancelled"
             booked.pop((appt["doctor_id"], appt["date"], appt["start_time"]), None)
             return respond(200, {"success": True, "data": appt})
+        if (path.endswith("/hms/leads") or path.endswith("/api/leads") or path.endswith("/leads")) and request.method == "POST":
+            b = json.loads(request.content or "{}")
+            lead_id = f"LEAD-MOCK-{uuid.uuid4().hex[:6].upper()}"
+            return respond(201, {"success": True, "data": {"id": lead_id, "status": "new", **b}})
+        if (path.endswith("/hms/call-logs") or path.endswith("/api/call-logs") or path.endswith("/call-logs")) and request.method == "POST":
+            b = json.loads(request.content or "{}")
+            call_id = f"CALL-MOCK-{uuid.uuid4().hex[:6].upper()}"
+            return respond(201, {"success": True, "data": {"id": call_id, **b}})
+        if (path.endswith("/hms/follow-up-tasks") or path.endswith("/api/follow-up-tasks") or path.endswith("/follow-up-tasks")) and request.method == "POST":
+            b = json.loads(request.content or "{}")
+            task_id = f"TASK-MOCK-{uuid.uuid4().hex[:6].upper()}"
+            return respond(201, {"success": True, "data": {"id": task_id, "status": "pending", **b}})
         return respond(404, {"success": False, "message": "Not found"})
 
     return httpx.MockTransport(handler)

@@ -1,4 +1,4 @@
-﻿import 'dotenv/config'; // Ensure ARGON2_PEPPER and DATABASE_URL match the backend runtime
+import 'dotenv/config'; // Ensure ARGON2_PEPPER and DATABASE_URL match the backend runtime
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 

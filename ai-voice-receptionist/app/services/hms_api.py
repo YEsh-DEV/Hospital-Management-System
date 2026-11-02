@@ -1,4 +1,4 @@
-﻿"""HTTP client for the authoritative HMS (NestJS) and n8n webhook API. Contains NO conversation logic.
+"""HTTP client for the authoritative HMS (NestJS) and n8n webhook API. Contains NO conversation logic.
 
 Error model (important for booking safety):
   HMSHTTPError       - server answered with a 4xx: the request was definitively rejected.

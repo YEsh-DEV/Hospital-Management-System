@@ -1,4 +1,4 @@
-﻿import 'dotenv/config'; // Load .env before anything else
+import 'dotenv/config'; // Load .env before anything else
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, INestApplication } from '@nestjs/common';
 import helmet from 'helmet';

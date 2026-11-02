@@ -1,4 +1,4 @@
-﻿"""Dependency wiring. Tests build a Container with fakes; production builds it from Settings."""
+"""Dependency wiring. Tests build a Container with fakes; production builds it from Settings."""
 from __future__ import annotations
 
 import logging

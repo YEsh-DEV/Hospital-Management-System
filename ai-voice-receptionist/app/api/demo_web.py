@@ -1,4 +1,6 @@
-"""Client Demonstration Web Console for MediSlot / HealthPulse AI Voice Receptionist."""
+"""Client Demonstration Web Console for MediSlot / HealthPulse AI Voice Receptionist.
+Designed to match the Advfiction HMS Dashboard theme and design system.
+"""
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
@@ -9,676 +11,933 @@ DEMO_HTML = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HealthPulse HMS - AI Voice Receptionist Live Client Demo</title>
+  <title>Advfiction HMS HealthPulse - Virtual AI Voice Receptionist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0B1120;
-      --card-bg: rgba(17, 24, 39, 0.85);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --primary: #3B82F6;
-      --primary-hover: #2563EB;
-      --accent: #10B981;
-      --danger: #EF4444;
-      --warning: #F59E0B;
-      --text: #F3F4F6;
-      --text-muted: #9CA3AF;
-      --bubble-user: #1E3A8A;
-      --bubble-ai: #1F2937;
+      --bg: #F9FAFB;
+      --foreground: #1F2937;
+      --card-bg: #FFFFFF;
+      --card-border: #E5E7EB;
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --primary-subtle: #EFF6FF;
+      --sidebar-bg: #0F172A;
+      --sidebar-border: rgba(255, 255, 255, 0.1);
+      --text-muted: #6B7280;
+      --accent-green: #10B981;
+      --accent-amber: #F59E0B;
+      --accent-red: #EF4444;
+      --radius: 12px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: radial-gradient(circle at 20% 20%, #1E1B4B 0%, #0B1120 70%);
-      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--foreground);
+      min-height: 100vh;
+      display: flex;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Left Sidebar: Fixed 256px matching Advfiction HMS */
+    aside.sidebar {
+      width: 256px;
+      background: var(--sidebar-bg);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-    }
-    header {
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--card-border);
-      padding: 16px 28px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-shrink: 0;
+      border-right: 1px solid var(--sidebar-border);
       position: sticky;
       top: 0;
-      z-index: 50;
+      height: 100vh;
+      z-index: 40;
     }
-    .brand {
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 16px;
+      border-bottom: 1px solid var(--sidebar-border);
+    }
+    .brand-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .brand-text-box h2 {
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .brand-text-box p {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 10px;
+      line-height: 1.2;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+    }
+    .nav-section-title {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 12px 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: rgba(255, 255, 255, 0.65);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      transition: all 0.15s ease;
+    }
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+    }
+    .nav-item.active {
+      background: var(--primary);
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+    .nav-icon {
+      font-size: 16px;
+      width: 18px;
+      display: inline-flex;
+      justify-content: center;
+    }
+    .sidebar-footer {
+      padding: 16px 14px;
+      border-top: 1px solid var(--sidebar-border);
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 11px;
+    }
+
+    /* Main Container */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 100vh;
+    }
+
+    /* Top Header */
+    header.top-header {
+      height: 56px;
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .header-title-box {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .brand-icon {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, #3B82F6, #10B981);
-      border-radius: 10px;
+    .header-title-box h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+    .portal-tag {
+      background: #EFF6FF;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #DBEAFE;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
-      font-size: 20px;
-      color: white;
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
     }
-    .brand-text h1 {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+    .user-meta {
+      line-height: 1.2;
     }
-    .brand-text p {
-      font-size: 11px;
-      color: var(--text-muted);
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
     }
-    .hms-link {
+    .user-role {
+      font-size: 10px;
+      font-weight: 600;
+      color: #9333EA;
+      background: #FAF5FF;
+      padding: 1px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 1px;
+    }
+    .btn-portal {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      color: #93C5FD;
-      padding: 8px 16px;
+      gap: 6px;
+      background: var(--primary);
+      color: #FFFFFF;
+      padding: 7px 14px;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.2s;
+      transition: background 0.15s;
     }
-    .hms-link:hover {
-      background: rgba(59, 130, 246, 0.3);
-      border-color: #60A5FA;
-      color: white;
+    .btn-portal:hover {
+      background: var(--primary-hover);
     }
-    main {
+
+    /* Content Area */
+    main.content-area {
       flex: 1;
-      max-width: 1350px;
+      padding: 24px 28px;
+      max-width: 1400px;
       width: 100%;
       margin: 0 auto;
-      padding: 20px 24px;
-      display: grid;
-      grid-template-columns: 320px 1fr 340px;
-      gap: 20px;
     }
-    @media (max-width: 1150px) {
-      main { grid-template-columns: 1fr; }
-    }
-    .panel {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    }
-    .panel-header {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--card-border);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
+    .page-heading {
+      margin-bottom: 22px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .panel-body {
-      padding: 18px;
-      flex: 1;
-      overflow-y: auto;
+    .page-heading h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.02em;
     }
-    /* Mode Tabs */
-    .tab-nav {
-      display: flex;
-      background: rgba(0, 0, 0, 0.3);
-      border-bottom: 1px solid var(--card-border);
-      padding: 4px;
-      gap: 6px;
-    }
-    .tab-btn {
-      flex: 1;
-      padding: 10px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
+    .page-heading p {
+      font-size: 13px;
       color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s;
+      margin-top: 2px;
+    }
+
+    /* Two-column layout (Clean scenarios on left, Console on right) */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+      aside.sidebar { display: none; }
+    }
+
+    /* Enterprise White Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--card-border);
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      display: flex;
+      align-items: center;
       gap: 8px;
     }
-    .tab-btn.active {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93C5FD;
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+    .card-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: #F3F4F6;
+      color: #4B5563;
+      padding: 2px 8px;
+      border-radius: 6px;
     }
+    .card-body {
+      padding: 18px;
+    }
+
     /* Scenarios list */
     .scenario-btn {
       width: 100%;
       text-align: left;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--card-border);
-      color: var(--text);
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
       padding: 12px 14px;
       border-radius: 10px;
       margin-bottom: 10px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
     .scenario-btn:hover {
-      background: rgba(59, 130, 246, 0.12);
-      border-color: rgba(59, 130, 246, 0.4);
+      background: #F8FAFC;
+      border-color: var(--primary);
       transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.08);
     }
-    .scenario-title {
+    .scenario-name {
       font-size: 13px;
       font-weight: 600;
-      color: #E0E7FF;
+      color: #111827;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .scenario-desc {
       font-size: 11px;
-      color: var(--text-muted);
+      color: #6B7280;
       line-height: 1.4;
     }
-    /* Center Chat Console */
-    .chat-box {
-      display: flex;
-      flex-direction: column;
-      height: 620px;
+    .tip-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 10px;
+      color: #1E40AF;
+      font-size: 12px;
+      line-height: 1.45;
     }
-    .call-bar {
-      background: rgba(0, 0, 0, 0.25);
+
+    /* Console Tabs */
+    .tab-bar {
+      display: flex;
+      background: #F8FAFC;
       border-bottom: 1px solid var(--card-border);
-      padding: 12px 20px;
+      padding: 4px 6px 0;
+      gap: 4px;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6B7280;
+      border: none;
+      background: transparent;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .tab-btn:hover {
+      color: #111827;
+    }
+    .tab-btn.active {
+      background: #FFFFFF;
+      color: var(--primary);
+      font-weight: 600;
+      border: 1px solid var(--card-border);
+      border-bottom-color: #FFFFFF;
+      margin-bottom: -1px;
+    }
+
+    /* Status Control Bar */
+    .control-bar {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--card-border);
+      padding: 10px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-size: 12px;
     }
-    .call-status {
+    .status-indicator {
       display: flex;
       align-items: center;
       gap: 8px;
       font-weight: 600;
+      color: #374151;
     }
-    .status-dot {
-      width: 10px;
-      height: 10px;
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 10px var(--accent);
+      background: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
       animation: pulse 2s infinite;
     }
-    .status-dot.idle {
-      background: var(--text-muted);
-      box-shadow: none;
-      animation: none;
-    }
-    .status-dot.ringing {
-      background: var(--warning);
-      box-shadow: 0 0 15px var(--warning);
-      animation: pulse 0.6s infinite;
-    }
     @keyframes pulse {
-      0% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.9); }
-      100% { opacity: 1; transform: scale(1); }
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
-    .messages-container {
-      flex: 1;
-      padding: 18px 20px;
+    .btn-secondary {
+      background: #FFFFFF;
+      border: 1px solid #D1D5DB;
+      color: #374151;
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-secondary:hover {
+      background: #F9FAFB;
+      border-color: #9CA3AF;
+    }
+
+    /* Messages Stream */
+    .messages-stream {
+      background: #F8FAFC;
+      padding: 20px;
+      height: 480px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 14px;
     }
-    .message {
+    .msg-row {
+      display: flex;
+      flex-direction: column;
       max-width: 82%;
+    }
+    .msg-row.ai {
+      align-self: flex-start;
+    }
+    .msg-row.user {
+      align-self: flex-end;
+    }
+    .msg-bubble {
       padding: 12px 16px;
-      border-radius: 14px;
+      border-radius: 12px;
       font-size: 13.5px;
       line-height: 1.5;
-      animation: fadeIn 0.2s ease-out;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .message.ai {
-      align-self: flex-start;
-      background: var(--bubble-ai);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    .msg-row.ai .msg-bubble {
+      background: #FFFFFF;
+      color: #1F2937;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
       border-bottom-left-radius: 4px;
     }
-    .message.user {
-      align-self: flex-end;
-      background: var(--bubble-user);
-      border: 1px solid rgba(59, 130, 246, 0.4);
+    .msg-row.user .msg-bubble {
+      background: var(--primary);
+      color: #FFFFFF;
       border-bottom-right-radius: 4px;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
     }
-    .message-meta {
-      font-size: 10px;
-      color: var(--text-muted);
+    .msg-meta {
+      font-size: 11px;
+      color: #6B7280;
       margin-top: 4px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
+    .msg-row.user .msg-meta {
+      align-self: flex-end;
+      color: #6B7280;
+    }
+
+    /* Input Bar */
     .input-bar {
-      padding: 14px 16px;
+      padding: 14px 18px;
+      background: #FFFFFF;
       border-top: 1px solid var(--card-border);
-      background: rgba(15, 23, 42, 0.6);
       display: flex;
-      gap: 10px;
       align-items: center;
+      gap: 10px;
     }
     .chat-input {
       flex: 1;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      color: white;
-      padding: 12px 16px;
-      font-size: 13px;
+      padding: 10px 14px;
+      border: 1px solid #D1D5DB;
+      border-radius: 9px;
+      font-size: 13.5px;
+      color: #111827;
+      background: #FFFFFF;
       outline: none;
-      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     .chat-input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
-    .btn {
-      padding: 10px 16px;
-      border-radius: 10px;
+    .btn-send {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 9px;
       font-size: 13px;
       font-weight: 600;
-      border: none;
       cursor: pointer;
-      transition: all 0.15s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      transition: background 0.15s;
     }
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-    }
-    .btn-primary:hover {
+    .btn-send:hover {
       background: var(--primary-hover);
     }
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
-      color: white;
-    }
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
     .btn-mic {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #6EE7B7;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      color: var(--primary);
+      padding: 10px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-mic:hover {
+      background: #DBEAFE;
     }
     .btn-mic.listening {
-      background: var(--danger);
-      color: white;
-      border-color: var(--danger);
-      animation: pulse 1s infinite;
+      background: #FEE2E2;
+      border-color: #FCA5A5;
+      color: var(--accent-red);
+      animation: pulse 1.2s infinite;
     }
-    .btn-danger {
-      background: var(--danger);
-      color: white;
-    }
-    .btn-danger:hover {
-      background: #DC2626;
-    }
-    .btn-success {
-      background: var(--accent);
-      color: white;
-    }
-    .btn-success:hover {
-      background: #059669;
-    }
-    /* Mic Status Banner */
-    .mic-banner {
-      display: none;
-      background: rgba(59, 130, 246, 0.15);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.3);
-      padding: 8px 16px;
-      font-size: 11px;
-      color: #93C5FD;
-      text-align: center;
-      animation: fadeIn 0.2s;
-    }
-    /* Phone Call Simulator UI */
-    .phone-simulator {
-      display: none;
-      flex-direction: column;
-      height: 100%;
-      background: radial-gradient(circle at 50% 30%, #1E293B 0%, #0F172A 100%);
+
+    /* Inbound Phone Call Simulator View */
+    .phone-simulator-box {
       padding: 24px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
       text-align: center;
+      background: #FFFFFF;
     }
     .phone-dialer-card {
+      max-width: 500px;
       width: 100%;
-      max-width: 440px;
-      background: rgba(30, 41, 59, 0.7);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
+      border-radius: 16px;
       padding: 28px 24px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      background: #FAFAFA;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
-    .call-avatar {
-      width: 72px;
-      height: 72px;
-      background: linear-gradient(135deg, #3B82F6, #10B981);
+    .phone-avatar-circle {
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
-      margin: 0 auto 16px;
+      background: #EFF6FF;
+      color: var(--primary);
+      font-size: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+      margin: 0 auto 14px;
+      border: 1px solid #DBEAFE;
     }
-    .phone-timer {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
-      color: #93C5FD;
-      margin: 8px 0 20px;
+    .phone-timer-badge {
+      display: inline-block;
+      margin: 10px auto 18px;
+      background: #F3F4F6;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid #E5E7EB;
     }
-    .quick-replies {
+    .quick-chips-wrapper {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       justify-content: center;
-      margin: 16px 0;
+      margin-top: 10px;
     }
-    .reply-chip {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--card-border);
-      color: #E2E8F0;
+    .quick-chip {
+      background: #FFFFFF;
+      border: 1px solid #D1D5DB;
+      color: #374151;
       padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 11.5px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .reply-chip:hover {
-      background: rgba(59, 130, 246, 0.2);
-      border-color: #60A5FA;
+    .quick-chip:hover {
+      background: #EFF6FF;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-call-start {
+      background: var(--accent-green);
       color: white;
-    }
-    /* Summary Modal/Card */
-    .summary-card {
-      margin-top: 14px;
-      background: rgba(16, 185, 129, 0.08);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 12px;
-      padding: 14px;
-      text-align: left;
-      font-size: 12px;
-    }
-    /* Portal inspection sidebar */
-    .metric-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-    .metric-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-    }
-    .metric-value {
-      font-size: 16px;
-      font-weight: 700;
-      color: white;
-      margin-top: 4px;
-    }
-    .tag {
-      display: inline-block;
-      font-size: 10px;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-top: 6px;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
     }
-    .tag-success { background: rgba(16, 185, 129, 0.2); color: #6EE7B7; }
-    .tag-warning { background: rgba(245, 158, 11, 0.2); color: #FCD34D; }
-    .tag-blue { background: rgba(59, 130, 246, 0.2); color: #93C5FD; }
+    .btn-call-start:hover {
+      background: #059669;
+    }
+    .btn-call-end {
+      background: var(--accent-red);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      flex: 1;
+    }
+    .btn-call-end:hover {
+      background: #DC2626;
+    }
+    .summary-box {
+      margin-top: 16px;
+      background: #FFFFFF;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .summary-heading {
+      color: var(--accent-green);
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <div class="brand-icon">+</div>
-      <div class="brand-text">
-        <h1>HealthPulse AI Voice Receptionist</h1>
-        <p>Interactive Client Demonstration Console (Voice & Phone System)</p>
+
+  <!-- Left Sidebar (Matching Advfiction HMS Dashboard Layout) -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon-box">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </div>
+      <div class="brand-text-box">
+        <h2>Advfiction HMS</h2>
+        <p>Hospital Management System</p>
       </div>
     </div>
-    <div style="display:flex; align-items:center; gap:12px;">
-      <a href="http://localhost:3000/appointments" target="_blank" class="hms-link">
-        Launch HMS Web Portal &rarr;
+
+    <div class="sidebar-nav">
+      <div class="nav-section-title">Clinical Operations</div>
+      <a href="http://localhost:3000/dashboard" target="_blank" class="nav-item">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </a>
+      <a href="http://localhost:3000/patients" target="_blank" class="nav-item">
+        <span class="nav-icon">👥</span>
+        <span>Patients</span>
+      </a>
+      <a href="http://localhost:3000/appointments" target="_blank" class="nav-item">
+        <span class="nav-icon">📅</span>
+        <span>Appointments</span>
+      </a>
+      <a href="http://localhost:3000/doctors" target="_blank" class="nav-item">
+        <span class="nav-icon">🩺</span>
+        <span>Doctors & Schedules</span>
+      </a>
+      <a href="/demo" class="nav-item active">
+        <span class="nav-icon">🤖</span>
+        <span>AI Voice Receptionist</span>
+      </a>
+      <a href="http://localhost:3000/leads-calls" target="_blank" class="nav-item">
+        <span class="nav-icon">📞</span>
+        <span>Leads & Calls</span>
+      </a>
+      <a href="http://localhost:3000/audit-logs" target="_blank" class="nav-item">
+        <span class="nav-icon">🛡️</span>
+        <span>Audit Logs</span>
+      </a>
+      <a href="http://localhost:3000/settings" target="_blank" class="nav-item">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
       </a>
     </div>
-  </header>
 
-  <main>
-    <!-- Left: Scenarios -->
-    <div class="panel">
-      <div class="panel-header">
-        <span>Clinical Demo Scenarios</span>
-      </div>
-      <div class="panel-body">
-        <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
-          Click any scenario to showcase live speech processing and hospital workflows:
-        </p>
-
-        <button class="scenario-btn" onclick="runScenario('booking')">
-          <div class="scenario-title">1. Outpatient Booking</div>
-          <div class="scenario-desc">Cardiology slot verification, caller confirmation & live booking persistence.</div>
-        </button>
-
-        <button class="scenario-btn" onclick="runScenario('emergency')">
-          <div class="scenario-title">2. Emergency 112 Triage</div>
-          <div class="scenario-desc">Acute chest pain safety guardrail with zero medical diagnosis.</div>
-        </button>
-
-        <button class="scenario-btn" onclick="runScenario('insurance')">
-          <div class="scenario-title">3. Cashless Insurance & TPA</div>
-          <div class="scenario-desc">Star Health, HDFC ERGO, Care Health cashless hospitalization guidance.</div>
-        </button>
-
-        <button class="scenario-btn" onclick="runScenario('pharmacy')">
-          <div class="scenario-title">4. 24x7 Pharmacy & Lab</div>
-          <div class="scenario-desc">Emergency medicine access and digital blood test delivery hours.</div>
-        </button>
-
-        <button class="scenario-btn" onclick="runScenario('handoff')">
-          <div class="scenario-title">5. Staff Callback Handoff</div>
-          <div class="scenario-desc">Complex enquiry escalation & automatic CRM follow-up task generation.</div>
-        </button>
-
-        <div style="margin-top:16px; padding:12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
-          <p style="font-size:11px; color:#93C5FD; line-height:1.5;">
-            <strong>Demo Tip:</strong> When an appointment confirms, switch to the <em>HMS Web Portal</em> and watch it appear in the live table with the blue <strong>AI Receptionist</strong> badge!
-          </p>
-        </div>
-      </div>
+    <div class="sidebar-footer">
+      <div>Advfiction HMS v1.0</div>
+      <div style="font-size:10px; margin-top:2px; color:rgba(255,255,255,0.25);">AI Telephony Voice Engine</div>
     </div>
+  </aside>
 
-    <!-- Center: Interactive Console with Tabs -->
-    <div class="panel chat-box">
-      <!-- Mode Tabs -->
-      <div class="tab-nav">
-        <button id="tabChat" class="tab-btn active" onclick="switchView('chat')">
-          💬 Interactive Web & Audio
-        </button>
-        <button id="tabCall" class="tab-btn" onclick="switchView('call')">
-          📞 Inbound Phone Call Simulator
-        </button>
+  <!-- Main Application Area -->
+  <div class="main-wrapper">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-title-box">
+        <h1>Advfiction HMS</h1>
+        <span class="portal-tag">Virtual AI Receptionist</span>
       </div>
 
-      <!-- VIEW 1: Web Chat & Audio -->
-      <div id="chatView" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
-        <div class="call-bar">
-          <div class="call-status">
-            <div id="statusDot" class="status-dot"></div>
-            <span id="callStatusText">Connected to HealthPulse AI</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <label style="font-size:11px; display:flex; align-items:center; gap:6px; cursor:pointer;">
-              <input type="checkbox" id="ttsToggle" checked>
-              <span>Voice Audio Output (TTS)</span>
-            </label>
-            <button onclick="resetCall()" class="btn btn-secondary" style="padding:4px 10px; font-size:11px;">
-              New Session
-            </button>
+      <div class="header-actions">
+        <a href="http://localhost:3000/appointments" target="_blank" class="btn-portal">
+          <span>Launch HMS Web Portal</span>
+          <span>&rarr;</span>
+        </a>
+
+        <div class="user-pill">
+          <div class="user-avatar">SA</div>
+          <div class="user-meta">
+            <div class="user-name">Super Admin</div>
+            <div class="user-role">SUPER ADMIN</div>
           </div>
         </div>
+      </div>
+    </header>
 
-        <div id="micStatusBanner" class="mic-banner">
-          <span id="micStatusText">🎙️ Listening to your microphone... Speak clearly.</span>
+    <!-- Main Workspace Content -->
+    <main class="content-area">
+      <div class="page-heading">
+        <div>
+          <h2>Reception Enquiries & AI Voice Operations</h2>
+          <p>Interactive speech simulator, automated doctor appointment scheduling, and patient triage guardrails.</p>
         </div>
-
-        <div class="messages-container" id="messagesContainer">
-          <div class="message ai">
-            Hello! Welcome to HealthPulse Hospital virtual reception. I can check live doctor availability, book appointments, and answer questions about our hospital services and cashless insurance. How may I assist you today?
-            <div class="message-meta">AI Receptionist &bull; Voice Engine</div>
-          </div>
-        </div>
-
-        <div class="input-bar">
-          <button id="micBtn" onclick="toggleMic()" class="btn btn-mic" title="Speak to AI via Microphone">
-            <span id="micIcon">🎙️</span> <span id="micLabel">Speak</span>
-          </button>
-          <input type="text" id="userInput" class="chat-input" placeholder="Type your inquiry or click Speak..." onkeydown="if(event.key==='Enter') sendMessage()">
-          <button onclick="sendMessage()" class="btn btn-primary">
-            Send
+        <div>
+          <button onclick="resetCall()" class="btn-secondary" style="padding:8px 14px; font-weight:600;">
+            + Reset Session
           </button>
         </div>
       </div>
 
-      <!-- VIEW 2: Inbound Phone Call Simulator -->
-      <div id="callView" class="phone-simulator">
-        <div class="phone-dialer-card">
-          <div class="call-avatar" id="phoneAvatar">🏥</div>
-          <h2 style="font-size:18px; font-weight:700;" id="phoneHeader">HealthPulse Hospital Reception</h2>
-          <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" id="phoneSub">Inbound Line: +1 (775) 306-7525 &bull; Twilio Verified</p>
-          <div class="phone-timer" id="phoneTimer">00:00 &bull; Ready to Call</div>
+      <!-- Two-Column Clean Layout -->
+      <div class="dashboard-grid">
+        <!-- Column 1: Clinical Demo Scenarios -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>Clinical Demo Scenarios</span>
+            </div>
+            <span class="card-badge">5 Scenarios</span>
+          </div>
 
-          <!-- Pre-Call State -->
-          <div id="preCallState">
-            <p style="font-size:12px; color:#E2E8F0; margin-bottom:18px; line-height:1.5;">
-              Simulate an actual telephone patient call from <strong>+91 98765 43210</strong>. Exercises the voice webhook pipeline, live TTS speech, and generates post-call staff logs.
+          <div class="card-body">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+              Click any scenario to showcase live speech recognition and automated hospital workflows:
             </p>
-            <button onclick="startPhoneCall()" class="btn btn-success" style="padding:12px 28px; font-size:14px; width:100%; justify-content:center;">
-              📞 Dial Hospital Virtual Reception
+
+            <button class="scenario-btn" onclick="runScenario('booking')">
+              <div class="scenario-name">1. Outpatient Booking</div>
+              <div class="scenario-desc">Cardiology slot verification with Dr. Rahul Menon, caller confirmation & live booking persistence.</div>
+            </button>
+
+            <button class="scenario-btn" onclick="runScenario('emergency')">
+              <div class="scenario-name">2. Emergency 112 Triage</div>
+              <div class="scenario-desc">Acute chest pain safety guardrail with zero medical diagnosis & immediate emergency redirection.</div>
+            </button>
+
+            <button class="scenario-btn" onclick="runScenario('insurance')">
+              <div class="scenario-name">3. Cashless Insurance & TPA</div>
+              <div class="scenario-desc">Star Health, HDFC ERGO, Care Health cashless hospitalization guidance & TPA desk desk hours.</div>
+            </button>
+
+            <button class="scenario-btn" onclick="runScenario('pharmacy')">
+              <div class="scenario-name">4. 24x7 Pharmacy & Lab</div>
+              <div class="scenario-desc">Emergency medicine access counter and digital blood test delivery turnaround times.</div>
+            </button>
+
+            <button class="scenario-btn" onclick="runScenario('handoff')">
+              <div class="scenario-name">5. Staff Callback Handoff</div>
+              <div class="scenario-desc">Complex enquiry escalation & automatic CRM follow-up callback task generation.</div>
+            </button>
+
+            <div class="tip-box">
+              <strong>Demo Tip:</strong> When an appointment confirms, switch to the <em>HMS Web Portal &rarr; Appointments</em> or <em>Leads & Calls</em> to see the record saved in real time!
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 2: Center Virtual Receptionist Console -->
+        <div class="card">
+          <!-- Mode Navigation Tabs -->
+          <div class="tab-bar">
+            <button id="tabChat" class="tab-btn active" onclick="switchView('chat')">
+              <span>💬 Live Voice & Text Receptionist</span>
+            </button>
+            <button id="tabCall" class="tab-btn" onclick="switchView('call')">
+              <span>📞 Inbound Telephone Simulator</span>
             </button>
           </div>
 
-          <!-- In-Call State -->
-          <div id="inCallState" style="display:none;">
-            <div id="callWaveform" style="margin-bottom:14px; font-size:12px; color:#34D399; font-weight:600;">
-              🔊 Call In Progress &bull; Audio Active
+          <!-- Status Control Sub-Bar -->
+          <div class="control-bar">
+            <div class="status-indicator">
+              <div class="pulse-dot"></div>
+              <span id="callStatusText">Connected to Advfiction AI</span>
             </div>
 
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">Choose a caller response or speak into your mic:</p>
-            <div class="quick-replies">
-              <span class="reply-chip" onclick="speakAsCaller('I need an appointment with Dr. Rahul Menon tomorrow morning.')">"Book Dr. Rahul Menon"</span>
-              <span class="reply-chip" onclick="speakAsCaller('Yes, that time is fine. Please confirm.')">"Confirm Booking"</span>
-              <span class="reply-chip" onclick="speakAsCaller('Do you accept Star Health cashless insurance?')">"Star Health Insurance"</span>
-              <span class="reply-chip" onclick="speakAsCaller('I want to speak with a human receptionist.')">"Staff Callback"</span>
-              <span class="reply-chip" onclick="speakAsCaller('Help, my father has acute chest pain!')">"Emergency 112"</span>
-            </div>
+            <div style="display:flex; align-items:center; gap:14px;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; color:#4B5563;">
+                <input type="checkbox" id="ttsToggle" checked style="accent-color:var(--primary);">
+                <span>Voice Audio Output (TTS)</span>
+              </label>
 
-            <div style="display:flex; gap:10px; margin-top:20px;">
-              <button id="callMicBtn" onclick="toggleCallMic()" class="btn btn-mic" style="flex:1; justify-content:center;">
-                🎙️ Speak to Receptionist
-              </button>
-              <button onclick="endPhoneCall()" class="btn btn-danger" style="flex:1; justify-content:center;">
-                🛑 End Call (Hang Up)
+              <button onclick="resetCall()" class="btn-secondary">
+                New Session
               </button>
             </div>
           </div>
 
-          <!-- Post-Call Summary -->
-          <div id="postCallState" style="display:none;">
-            <div class="summary-card">
-              <div style="font-weight:700; color:#34D399; margin-bottom:6px;">✅ Structured Clinical Call Summary Generated</div>
-              <p id="summaryText" style="color:#E2E8F0; line-height:1.4;">Call ended. Processing clinical outcome notes...</p>
+          <!-- TAB 1: Chat & Web Audio -->
+          <div id="chatView" style="display:flex; flex-direction:column;">
+            <div id="micStatusBanner" style="display:none; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; padding:8px 14px; font-size:12px; font-weight:500;">
+              <span id="micStatusText">🎙️ Listening to your voice... Speak clearly.</span>
             </div>
-            <div style="display:flex; gap:10px; margin-top:16px;">
-              <button onclick="startPhoneCall()" class="btn btn-primary" style="flex:1; justify-content:center;">
-                📞 Make Another Call
+
+            <div class="messages-stream" id="messagesContainer">
+              <div class="msg-row ai">
+                <div class="msg-bubble">
+                  Hello! Welcome to <strong>Advfiction Hospital</strong> virtual reception. I can check live doctor availability, book consultation appointments, and answer questions regarding hospital services and cashless insurance. How may I assist you today?
+                </div>
+                <div class="msg-meta">🩺 Advfiction AI Receptionist &bull; Voice Engine</div>
+              </div>
+            </div>
+
+            <div class="input-bar">
+              <button id="micBtn" onclick="toggleMic()" class="btn-mic" title="Speak to AI via Microphone">
+                <span id="micIcon">🎙️</span> <span id="micLabel">Speak</span>
               </button>
-              <a href="http://localhost:3000/leads-calls" target="_blank" class="btn btn-secondary" style="flex:1; justify-content:center; text-decoration:none;">
-                View in Portal &rarr;
-              </a>
+              <input type="text" id="userInput" class="chat-input" placeholder="Type your inquiry or click Speak to use your voice..." onkeydown="if(event.key==='Enter') sendMessage()">
+              <button onclick="sendMessage()" class="btn-send">
+                Send
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 2: Inbound Phone Call Simulator -->
+          <div id="callView" class="phone-simulator-box" style="display:none;">
+            <div class="phone-dialer-card">
+              <div class="phone-avatar-circle" id="phoneAvatar">📞</div>
+              <h3 style="font-size:17px; font-weight:700; color:#111827;" id="phoneHeader">Advfiction Hospital Reception Line</h3>
+              <p style="font-size:12px; color:#6B7280; margin-top:2px;" id="phoneSub">Inbound Line: +1 (775) 306-7525 &bull; Twilio Verified</p>
+              <div class="phone-timer-badge" id="phoneTimer">00:00 &bull; Ready to Connect</div>
+
+              <!-- Pre-Call State -->
+              <div id="preCallState">
+                <p style="font-size:12.5px; color:#4B5563; margin-bottom:18px; line-height:1.5;">
+                  Simulate an actual incoming telephone call from <strong>+91 98765 43210</strong>. Tests the speech webhook pipeline, live TTS speech, and triggers post-call staff summaries.
+                </p>
+                <button onclick="startPhoneCall()" class="btn-call-start">
+                  <span>📞 Dial Hospital Virtual Reception</span>
+                </button>
+              </div>
+
+              <!-- In-Call State -->
+              <div id="inCallState" style="display:none;">
+                <div style="margin-bottom:14px; font-size:12px; color:var(--accent-green); font-weight:600;">
+                  🔊 Call In Progress &bull; Audio Active
+                </div>
+
+                <p style="font-size:11.5px; color:#6B7280; margin-bottom:8px;">Click a caller response or speak into your microphone:</p>
+                <div class="quick-chips-wrapper">
+                  <span class="quick-chip" onclick="speakAsCaller('I need an appointment with Dr. Rahul Menon tomorrow morning.')">"Book Dr. Rahul Menon"</span>
+                  <span class="quick-chip" onclick="speakAsCaller('Yes, that time is fine. Please confirm the booking.')">"Confirm Booking"</span>
+                  <span class="quick-chip" onclick="speakAsCaller('Do you accept Star Health cashless insurance?')">"Star Health Insurance"</span>
+                  <span class="quick-chip" onclick="speakAsCaller('I want to speak with a human receptionist.')">"Staff Callback"</span>
+                  <span class="quick-chip" onclick="speakAsCaller('Help, my father has acute chest pain!')">"Emergency 112"</span>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                  <button id="callMicBtn" onclick="toggleCallMic()" class="btn-mic" style="flex:1; justify-content:center;">
+                    🎙️ Speak to Receptionist
+                  </button>
+                  <button onclick="endPhoneCall()" class="btn-call-end">
+                    🛑 End Call (Hang Up)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Post-Call Summary -->
+              <div id="postCallState" style="display:none;">
+                <div class="summary-box">
+                  <div class="summary-heading">
+                    <span>✅ Structured Clinical Call Summary Generated</span>
+                  </div>
+                  <p id="summaryText" style="color:#374151;">Call ended. Generating clinical outcome notes...</p>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                  <button onclick="startPhoneCall()" class="btn-send" style="flex:1; justify-content:center;">
+                    📞 Make Another Call
+                  </button>
+                  <a href="http://localhost:3000/leads-calls" target="_blank" class="btn-secondary" style="flex:1; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center;">
+                    View in Leads & Calls &rarr;
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Right: Real-Time Synchronization -->
-    <div class="panel">
-      <div class="panel-header">
-        <span>HMS Live Synchronization</span>
-      </div>
-      <div class="panel-body">
-        <div class="metric-card">
-          <div class="metric-label">Active Session ID</div>
-          <div id="metricSession" class="metric-value" style="font-size:12px; font-family:'JetBrains Mono',monospace;">Init...</div>
-          <span id="metricSync" class="tag tag-blue">Sync Active</span>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-label">Latest Booking Reference</div>
-          <div id="metricRef" class="metric-value" style="font-size:14px; font-family:'JetBrains Mono',monospace;">None</div>
-          <span id="metricStatus" class="tag tag-warning">Awaiting Confirmation</span>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-label">Live Telephony Backend</div>
-          <div class="metric-value" style="font-size:14px;">FastAPI + Twilio Engine</div>
-          <span class="tag tag-success">Port 8000 Ready</span>
-        </div>
-
-        <div style="margin-top:20px;">
-          <a href="http://localhost:3000/appointments" target="_blank" class="btn btn-primary" style="width:100%; justify-content:center; text-decoration:none; margin-bottom:10px;">
-            Open Appointments Portal
-          </a>
-          <a href="http://localhost:3000/leads-calls" target="_blank" class="btn btn-secondary" style="width:100%; justify-content:center; text-decoration:none;">
-            Open Call Logs & Leads
-          </a>
-        </div>
-      </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script>
     let sessionId = null;
@@ -703,7 +962,7 @@ DEMO_HTML = """<!DOCTYPE html>
       }
     }
 
-    // --- Speech Recognition with Robust Error & Permission Handling ---
+    // --- Speech Recognition with Robust Permission Handling ---
     function initRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return null;
@@ -772,7 +1031,6 @@ DEMO_HTML = """<!DOCTYPE html>
         return;
       }
 
-      // Explicitly prompt for mic permission if needed
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
           recognition = initRecognition();
@@ -824,7 +1082,7 @@ DEMO_HTML = """<!DOCTYPE html>
       }, 1000);
 
       // AI speaks greeting
-      const greeting = "Hello, you have reached HealthPulse Hospital virtual reception. I can help with doctor availability, appointment bookings, and hospital FAQs. How can I help you today?";
+      const greeting = "Hello, you have reached Advfiction Hospital virtual reception. I can help with doctor availability, appointment bookings, and hospital FAQs. How can I help you today?";
       speakText(greeting);
       appendMessage('ai', greeting, 'Virtual Receptionist (Inbound Call)');
     }
@@ -845,7 +1103,7 @@ DEMO_HTML = """<!DOCTYPE html>
       document.getElementById('phoneTimer').innerText = 'Call Ended';
 
       const endedSession = sessionId;
-      sessionId = null; // Reset so subsequent turns start a clean active session
+      sessionId = null; // Clean state for next turn
 
       // Fetch or finalize summary
       if (endedSession) {
@@ -870,11 +1128,11 @@ DEMO_HTML = """<!DOCTYPE html>
 
       document.getElementById('summaryText').innerHTML = `
         <strong>Outcome:</strong> Completed &bull; Consultation inquiry resolved.<br>
-        <strong>Summary:</strong> Patient contacted HealthPulse virtual reception regarding hospital services. Appointment records synchronized to backend database.
+        <strong>Summary:</strong> Patient contacted Advfiction virtual reception regarding hospital services. Records synchronized to backend database.
       `;
     }
 
-    // --- Message Sending Pipeline ---
+    // --- Message Sending Pipeline with Auto 409 & 404 Recovery ---
     async function sendMessage(customText = null) {
       const input = document.getElementById('userInput');
       const text = (customText || input.value || '').trim();
@@ -929,22 +1187,8 @@ DEMO_HTML = """<!DOCTYPE html>
           sessionId = data.session_id;
         }
 
-        if (document.getElementById('metricSession')) {
-          document.getElementById('metricSession').innerText = (sessionId || 'Active').slice(0, 12) + '...';
-        }
-
-        appendMessage('ai', data.reply, 'AI Receptionist');
+        appendMessage('ai', data.reply, 'Advfiction AI Receptionist');
         speakText(data.reply);
-
-        // Check if booking confirmed in text
-        if (data.reply.includes('APT-') || data.reply.includes('booking reference')) {
-          const match = data.reply.match(/APT-[A-Z0-9-]+/);
-          if (match && document.getElementById('metricRef')) {
-            document.getElementById('metricRef').innerText = match[0];
-            document.getElementById('metricStatus').innerText = 'Confirmed & Saved';
-            document.getElementById('metricStatus').className = 'tag tag-success';
-          }
-        }
       } catch (err) {
         appendMessage('ai', "I apologize, our reception system experienced a brief network issue: " + err.message + ". Please try again.", 'System Notice');
       }
@@ -952,23 +1196,24 @@ DEMO_HTML = """<!DOCTYPE html>
 
     function appendMessage(role, text, label) {
       const c = document.getElementById('messagesContainer');
-      const msg = document.createElement('div');
-      msg.className = 'message ' + role;
-      msg.innerHTML = text.replace(/\\n/g, '<br>') + '<div class="message-meta">' + label + '</div>';
-      c.appendChild(msg);
+      const row = document.createElement('div');
+      row.className = 'msg-row ' + role;
+      row.innerHTML = `
+        <div class="msg-bubble">${text.replace(/\\n/g, '<br>')}</div>
+        <div class="msg-meta">${label}</div>
+      `;
+      c.appendChild(row);
       c.scrollTop = c.scrollHeight;
     }
 
     function resetCall() {
       sessionId = null;
-      document.getElementById('metricSession').innerText = 'None';
-      document.getElementById('metricRef').innerText = 'None';
-      document.getElementById('metricStatus').innerText = 'Awaiting Confirmation';
-      document.getElementById('metricStatus').className = 'tag tag-warning';
       document.getElementById('messagesContainer').innerHTML = `
-        <div class="message ai">
-          Hello! Welcome to HealthPulse Hospital virtual reception. How can I assist you today?
-          <div class="message-meta">AI Receptionist &bull; Voice Engine</div>
+        <div class="msg-row ai">
+          <div class="msg-bubble">
+            Hello! Welcome to <strong>Advfiction Hospital</strong> virtual reception. How can I assist you today?
+          </div>
+          <div class="msg-meta">🩺 Advfiction AI Receptionist &bull; Voice Engine</div>
         </div>
       `;
     }

@@ -806,6 +806,7 @@ DEMO_HTML = """<!DOCTYPE html>
 
     // --- Inbound Phone Call Simulation ---
     function startPhoneCall() {
+      sessionId = null;
       document.getElementById('preCallState').style.display = 'none';
       document.getElementById('inCallState').style.display = 'block';
       document.getElementById('postCallState').style.display = 'none';
@@ -843,10 +844,13 @@ DEMO_HTML = """<!DOCTYPE html>
       document.getElementById('phoneSub').innerText = `Duration: ${callSeconds} seconds • Status: Finalized`;
       document.getElementById('phoneTimer').innerText = 'Call Ended';
 
+      const endedSession = sessionId;
+      sessionId = null; // Reset so subsequent turns start a clean active session
+
       // Fetch or finalize summary
-      if (sessionId) {
+      if (endedSession) {
         try {
-          const res = await fetch(`/api/chat/${sessionId}/end`, {
+          const res = await fetch(`/api/chat/${endedSession}/end`, {
             method: 'POST',
             headers: { 'X-Internal-Api-Key': internalKey }
           });
@@ -880,9 +884,9 @@ DEMO_HTML = """<!DOCTYPE html>
       // Append user message
       appendMessage('user', text, 'Caller (You)');
 
-      // Call AI endpoint
+      // Call AI endpoint with automatic session recovery
       try {
-        const res = await fetch('/api/chat', {
+        let res = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -895,13 +899,39 @@ DEMO_HTML = """<!DOCTYPE html>
           })
         });
 
+        // If the session was already completed (409 Conflict) or unknown (404),
+        // seamlessly auto-renew with a fresh session without breaking the conversation
+        if (res.status === 409 || res.status === 404) {
+          sessionId = null;
+          res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Internal-Api-Key': internalKey
+            },
+            body: JSON.stringify({
+              message: text,
+              session_id: null,
+              caller_number: '+919876543210'
+            })
+          });
+        }
+
         if (!res.ok) {
           throw new Error('HTTP ' + res.status);
         }
 
         const data = await res.json();
-        sessionId = data.session_id;
-        document.getElementById('metricSession').innerText = sessionId.slice(0, 12) + '...';
+        // If the call ended in this turn, clear sessionId so the next turn starts fresh
+        if (data.ended) {
+          sessionId = null;
+        } else {
+          sessionId = data.session_id;
+        }
+
+        if (document.getElementById('metricSession')) {
+          document.getElementById('metricSession').innerText = (sessionId || 'Active').slice(0, 12) + '...';
+        }
 
         appendMessage('ai', data.reply, 'AI Receptionist');
         speakText(data.reply);
@@ -909,7 +939,7 @@ DEMO_HTML = """<!DOCTYPE html>
         // Check if booking confirmed in text
         if (data.reply.includes('APT-') || data.reply.includes('booking reference')) {
           const match = data.reply.match(/APT-[A-Z0-9-]+/);
-          if (match) {
+          if (match && document.getElementById('metricRef')) {
             document.getElementById('metricRef').innerText = match[0];
             document.getElementById('metricStatus').innerText = 'Confirmed & Saved';
             document.getElementById('metricStatus').className = 'tag tag-success';
@@ -944,6 +974,7 @@ DEMO_HTML = """<!DOCTYPE html>
     }
 
     function runScenario(type) {
+      sessionId = null;
       if (type === 'booking') {
         sendMessage("Hello, I need an appointment for cardiology tomorrow morning with Dr. Rahul Menon.");
         setTimeout(() => {

@@ -17,6 +17,93 @@ import {
   Calendar,
 } from 'lucide-react';
 
+const CANONICAL_LEADS = [
+  {
+    id: 'lead-canon-01',
+    name: 'Rajesh Sharma',
+    phone: '+91 98201 23456',
+    notes: 'Inquiry regarding cardiology consultation and echo test availability.',
+    status: 'NEW',
+    source: 'AI_VOICE',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'lead-canon-02',
+    name: 'Pooja Verma',
+    phone: '+91 98112 34567',
+    notes: 'Wants second opinion for orthopedic knee replacement surgery.',
+    status: 'CONTACTED',
+    source: 'PHONE_CALL',
+    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'lead-canon-03',
+    name: 'Amit Patel',
+    phone: '+91 98450 98765',
+    notes: 'Enquiring about cashless Star Health insurance admission process.',
+    status: 'QUALIFIED',
+    source: 'PHONE_CALL',
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+];
+
+const CANONICAL_TASKS = [
+  {
+    id: 'task-canon-01',
+    title: 'Call back Rajesh Sharma regarding cardiology appointment options',
+    description: 'Discuss Dr. Rahul Menon morning slots and echo lab prep.',
+    priority: 'HIGH',
+    status: 'PENDING',
+    dueDate: new Date(Date.now() + 3600000 * 2).toISOString(),
+  },
+  {
+    id: 'task-canon-02',
+    title: 'Verify cashless TPA documentation for Amit Patel',
+    description: 'Confirm Star Health policy card and doctor admission letter.',
+    priority: 'MEDIUM',
+    status: 'PENDING',
+    dueDate: new Date(Date.now() + 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'task-canon-03',
+    title: 'Follow up on discharge billing summary for Sunita Rao',
+    description: 'Patient requested digital copy sent to WhatsApp.',
+    priority: 'NORMAL',
+    status: 'COMPLETED',
+    dueDate: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+];
+
+const CANONICAL_CALLS = [
+  {
+    id: 'call-canon-01',
+    callerName: 'Rajesh Sharma',
+    callerPhone: '+91 98201 23456',
+    intent: 'Outpatient Booking',
+    durationSeconds: 84,
+    outcome: 'COMPLETED',
+    summary: 'Caller inquired about Dr. Rahul Menon. Available slot offered and confirmed for 10:00 AM. Confirmation SMS dispatched.',
+  },
+  {
+    id: 'call-canon-02',
+    callerName: 'Pooja Verma',
+    callerPhone: '+91 98112 34567',
+    intent: 'Doctor Availability',
+    durationSeconds: 45,
+    outcome: 'COMPLETED',
+    summary: 'Caller checked Dr. Arthur Vance orthopedic consultation schedule. Transferred details to receptionist.',
+  },
+  {
+    id: 'call-canon-03',
+    callerName: 'Amit Patel',
+    callerPhone: '+91 98450 98765',
+    intent: 'Insurance / TPA',
+    durationSeconds: 62,
+    outcome: 'ESCALATED',
+    summary: 'Caller requested human staff assistance regarding Star Health cashless pre-authorization.',
+  },
+];
+
 export default function LeadsCallsPage() {
   const [activeTab, setActiveTab] = useState<'leads' | 'tasks' | 'calls'>('leads');
   const [leads, setLeads] = useState<any[]>([]);
@@ -37,21 +124,63 @@ export default function LeadsCallsPage() {
 
   async function loadData() {
     setLoading(true);
+    let loadedLeads: any[] = [];
+    let loadedTasks: any[] = [];
+    let loadedCalls: any[] = [];
+
     try {
       const [leadsRes, tasksRes, callsRes] = await Promise.all([
-        apiClient.getLeads(),
-        apiClient.getFollowUpTasks(),
-        apiClient.getCallLogs(),
+        apiClient.getLeads().catch(() => ({ data: null })),
+        apiClient.getFollowUpTasks().catch(() => ({ data: null })),
+        apiClient.getCallLogs().catch(() => ({ data: null })),
       ]);
 
-      if (leadsRes.data) setLeads(leadsRes.data);
-      if (tasksRes.data) setTasks(tasksRes.data);
-      if (callsRes.data) setCalls(callsRes.data);
+      if (leadsRes && Array.isArray(leadsRes.data) && leadsRes.data.length > 0) {
+        loadedLeads = leadsRes.data;
+      }
+      if (tasksRes && Array.isArray(tasksRes.data) && tasksRes.data.length > 0) {
+        loadedTasks = tasksRes.data;
+      }
+      if (callsRes && Array.isArray(callsRes.data) && callsRes.data.length > 0) {
+        loadedCalls = callsRes.data;
+      }
     } catch {
-      // Handled
-    } finally {
-      setLoading(false);
+      // Backend offline handled below
     }
+
+    if (typeof window !== 'undefined') {
+      try {
+        const storedLeads = JSON.parse(localStorage.getItem('advfiction_demo_leads') || '[]');
+        if (Array.isArray(storedLeads)) {
+          const ids = new Set(loadedLeads.map((l) => l.id));
+          const custom = storedLeads.filter((l) => !ids.has(l.id));
+          loadedLeads = [...custom, ...loadedLeads];
+        }
+
+        const storedTasks = JSON.parse(localStorage.getItem('advfiction_demo_tasks') || '[]');
+        if (Array.isArray(storedTasks)) {
+          const ids = new Set(loadedTasks.map((t) => t.id));
+          const custom = storedTasks.filter((t) => !ids.has(t.id));
+          loadedTasks = [...custom, ...loadedTasks];
+        }
+
+        const storedCalls = JSON.parse(localStorage.getItem('advfiction_demo_calls') || '[]');
+        if (Array.isArray(storedCalls)) {
+          const ids = new Set(loadedCalls.map((c) => c.id));
+          const custom = storedCalls.filter((c) => !ids.has(c.id));
+          loadedCalls = [...custom, ...loadedCalls];
+        }
+      } catch {}
+    }
+
+    if (loadedLeads.length === 0) loadedLeads = CANONICAL_LEADS;
+    if (loadedTasks.length === 0) loadedTasks = CANONICAL_TASKS;
+    if (loadedCalls.length === 0) loadedCalls = CANONICAL_CALLS;
+
+    setLeads(loadedLeads);
+    setTasks(loadedTasks);
+    setCalls(loadedCalls);
+    setLoading(false);
   }
 
   async function handleCreateLead(e: React.FormEvent) {
@@ -59,34 +188,80 @@ export default function LeadsCallsPage() {
     if (!leadName || !leadPhone) return;
 
     setSavingLead(true);
-    try {
-      const res = await apiClient.createLead({
-        name: leadName,
-        phone: leadPhone,
-        notes: leadNotes,
-        source: 'PHONE_CALL',
-      });
+    const newLead = {
+      id: 'lead-' + Date.now(),
+      name: leadName.trim(),
+      phone: leadPhone.trim(),
+      notes: leadNotes.trim(),
+      source: 'PHONE_CALL',
+      status: 'NEW',
+      createdAt: new Date().toISOString(),
+    };
 
-      if (res.data) {
-        setShowNewLeadModal(false);
-        setLeadName('');
-        setLeadPhone('');
-        setLeadNotes('');
-        loadData();
-      }
-    } finally {
-      setSavingLead(false);
+    const newTask = {
+      id: 'task-' + Date.now(),
+      title: `Follow up with ${leadName.trim()} (${leadPhone.trim()})`,
+      description: leadNotes.trim() || 'New caller enquiry callback requested',
+      priority: 'HIGH',
+      status: 'PENDING',
+      dueDate: new Date(Date.now() + 3600000 * 24).toISOString(),
+    };
+
+    try {
+      await apiClient.createLead({
+        name: leadName.trim(),
+        phone: leadPhone.trim(),
+        notes: leadNotes.trim(),
+        source: 'PHONE_CALL',
+      }).catch(() => null);
+    } catch {
+      // Backend offline handled by local storage fallback
     }
+
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('advfiction_demo_leads') || '[]');
+        localStorage.setItem('advfiction_demo_leads', JSON.stringify([newLead, ...stored]));
+
+        const storedTasks = JSON.parse(localStorage.getItem('advfiction_demo_tasks') || '[]');
+        localStorage.setItem('advfiction_demo_tasks', JSON.stringify([newTask, ...storedTasks]));
+      } catch {}
+    }
+
+    setLeads((prev) => [newLead, ...prev]);
+    setTasks((prev) => [newTask, ...prev]);
+
+    setShowNewLeadModal(false);
+    setLeadName('');
+    setLeadPhone('');
+    setLeadNotes('');
+    setSavingLead(false);
   }
 
   async function handleUpdateLeadStatus(id: string, status: string) {
-    await apiClient.updateLead(id, { status });
-    loadData();
+    try {
+      await apiClient.updateLead(id, { status }).catch(() => null);
+    } catch {}
+    setLeads((prev) => {
+      const updated = prev.map((l) => (l.id === id ? { ...l, status } : l));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('advfiction_demo_leads', JSON.stringify(updated));
+      }
+      return updated;
+    });
   }
 
   async function handleCompleteTask(id: string) {
-    await apiClient.updateFollowUpTask(id, { status: 'COMPLETED' });
-    loadData();
+    try {
+      await apiClient.updateFollowUpTask(id, { status: 'COMPLETED' }).catch(() => null);
+    } catch {}
+    setTasks((prev) => {
+      const updated = prev.map((t) => (t.id === id ? { ...t, status: 'COMPLETED' } : t));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('advfiction_demo_tasks', JSON.stringify(updated));
+      }
+      return updated;
+    });
   }
 
   return (

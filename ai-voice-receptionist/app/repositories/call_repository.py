@@ -68,3 +68,7 @@ class CallRepository:
     def get_summary(self, call_id: str) -> dict | None:
         row = self.get(call_id)
         return json.loads(row.summary_json) if row and row.summary_json else None
+
+    def list_all(self, limit: int = 50) -> list[CallRow]:
+        with self.sf() as s:
+            return list(s.scalars(select(CallRow).order_by(CallRow.started_at.desc()).limit(limit)))

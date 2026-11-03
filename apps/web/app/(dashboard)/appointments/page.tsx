@@ -109,8 +109,10 @@ export default function AppointmentsPage() {
   const [patientName, setPatientName] = useState('');
   const [notes, setNotes] = useState('');
 
-  const loadAppointments = useCallback(async () => {
-    setIsLoading(true);
+  const loadAppointments = useCallback(async (isBackground = false) => {
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     const filters: Record<string, string> = {};
     if (statusFilter !== 'ALL') {
       filters.status = statusFilter;
@@ -138,7 +140,7 @@ export default function AppointmentsPage() {
 
     // 1. Direct query to AI Voice Receptionist endpoint
     try {
-      const aiRes = await fetch('http://localhost:8000/demo/appointments', { signal: AbortSignal.timeout(1200) });
+      const aiRes = await fetch('http://localhost:8000/demo/appointments', { signal: AbortSignal.timeout(1500) });
       if (aiRes.ok) {
         const aiData = await aiRes.json();
         if (Array.isArray(aiData)) {
@@ -203,14 +205,14 @@ export default function AppointmentsPage() {
   }, [statusFilter]);
 
   useEffect(() => {
-    loadAppointments();
+    loadAppointments(false);
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'advfiction_demo_appointments') {
-        loadAppointments();
+        loadAppointments(true);
       }
     };
     window.addEventListener('storage', handleStorage);
-    const interval = setInterval(loadAppointments, 4000);
+    const interval = setInterval(() => loadAppointments(true), 3000);
     return () => {
       window.removeEventListener('storage', handleStorage);
       clearInterval(interval);
@@ -374,7 +376,7 @@ export default function AppointmentsPage() {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={loadAppointments} disabled={isLoading}>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => loadAppointments(false)} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>

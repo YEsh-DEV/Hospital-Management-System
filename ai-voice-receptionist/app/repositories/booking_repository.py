@@ -39,3 +39,7 @@ class BookingRepository:
             if row:
                 for k, v in fields.items():
                     setattr(row, k, v)
+
+    def list_all(self, limit: int = 50) -> list[BookingOperationRow]:
+        with self.sf() as s:
+            return list(s.scalars(select(BookingOperationRow).order_by(BookingOperationRow.created_at.desc()).limit(limit)))

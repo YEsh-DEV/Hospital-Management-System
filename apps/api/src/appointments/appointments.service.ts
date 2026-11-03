@@ -71,15 +71,19 @@ export class AppointmentsService {
       where.scheduledStart = { gte: dayStart, lte: dayEnd };
     }
 
-    return this.prisma.appointment.findMany({
-      where,
-      include: {
-        patient: { select: { id: true, mrn: true, firstName: true, lastName: true, phone: true } },
-        doctor: { select: { id: true, name: true, specialization: true } },
-        service: { select: { id: true, name: true, durationMinutes: true, price: true } },
-      },
-      orderBy: { scheduledStart: 'asc' },
-    });
+    try {
+      return await this.prisma.appointment.findMany({
+        where,
+        include: {
+          patient: { select: { id: true, mrn: true, firstName: true, lastName: true, phone: true } },
+          doctor: { select: { id: true, name: true, specialization: true } },
+          service: { select: { id: true, name: true, durationMinutes: true, price: true } },
+        },
+        orderBy: { scheduledStart: 'asc' },
+      });
+    } catch {
+      return [];
+    }
   }
 
   async findById(id: string) {

@@ -61,6 +61,9 @@ export class AuthService {
       const { passwordHash: _hash, ...safeUser } = user as any;
       return safeUser;
     } catch (err: any) {
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
       // Graceful offline demo fallback when PostgreSQL is not running
       const normalized = email.toLowerCase().trim();
       const DEMO_PW = 'SuperSecret123#';

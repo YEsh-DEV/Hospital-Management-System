@@ -28,42 +28,95 @@ export default function DashboardPage() {
   const { currentRole, currentUser, canAccessAuditLogs } = useRole();
   const [liveMetrics, setLiveMetrics] = useState<any>(null);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [aiAppointments, setAiAppointments] = useState<any[]>([]);
+  const [aiCalls, setAiCalls] = useState<any[]>([]);
+  const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
   const [aiCounts, setAiCounts] = useState({ appts: 0, leads: 0, calls: 0, tasks: 0 });
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
+      // 1. Backend Reports & Audit Logs
       try {
         const [reportsRes, auditRes] = await Promise.allSettled([
           apiClient.getReportsSummary(),
           canAccessAuditLogs ? apiClient.getAuditLogs({ limit: '5' }) : Promise.resolve({ data: { data: [] } }),
         ]);
 
-        if (!isMounted) return;
-
-        if (reportsRes.status === 'fulfilled' && reportsRes.value.data) {
-          setLiveMetrics(reportsRes.value.data);
-        }
-
-        if (auditRes.status === 'fulfilled' && (auditRes.value as any)?.data?.data) {
-          setRecentLogs((auditRes.value as any).data.data.slice(0, 5));
+        if (isMounted) {
+          if (reportsRes.status === 'fulfilled' && reportsRes.value.data) {
+            setLiveMetrics(reportsRes.value.data);
+          }
+          if (auditRes.status === 'fulfilled' && (auditRes.value as any)?.data?.data) {
+            setRecentLogs((auditRes.value as any).data.data.slice(0, 5));
+          }
         }
       } catch {
-        // Fallback gracefully to default metrics
+        // Fallback gracefully
       }
 
+      // 2. Direct Cross-Port AI Voice Receptionist Queries
+      let fetchedAiAppts: any[] = [];
+      let fetchedAiCalls: any[] = [];
+      let liveOnline = false;
+
+      try {
+        const apptRes = await fetch('http://localhost:8000/demo/appointments', { signal: AbortSignal.timeout(1500) });
+        if (apptRes.ok) {
+          const apptData = await apptRes.json();
+          if (Array.isArray(apptData)) {
+            fetchedAiAppts = apptData;
+            liveOnline = true;
+          }
+        }
+      } catch {}
+
+      try {
+        const callRes = await fetch('http://localhost:8000/demo/calls', { signal: AbortSignal.timeout(1500) });
+        if (callRes.ok) {
+          const callData = await callRes.json();
+          if (Array.isArray(callData)) {
+            fetchedAiCalls = callData;
+            liveOnline = true;
+          }
+        }
+      } catch {}
+
+      // 3. LocalStorage Merge & Counter Updates
       if (typeof window !== 'undefined') {
         try {
           const storedAppts = JSON.parse(localStorage.getItem('advfiction_demo_appointments') || '[]');
           const storedLeads = JSON.parse(localStorage.getItem('advfiction_demo_leads') || '[]');
           const storedCalls = JSON.parse(localStorage.getItem('advfiction_demo_calls') || '[]');
           const storedTasks = JSON.parse(localStorage.getItem('advfiction_demo_tasks') || '[]');
+
+          if (Array.isArray(storedAppts)) {
+            const existingIds = new Set(fetchedAiAppts.map((a: any) => a.id));
+            for (const sa of storedAppts) {
+              if (!existingIds.has(sa.id)) {
+                fetchedAiAppts.push(sa);
+              }
+            }
+          }
+
+          if (Array.isArray(storedCalls)) {
+            const existingCallIds = new Set(fetchedAiCalls.map((c: any) => c.id));
+            for (const sc of storedCalls) {
+              if (!existingCallIds.has(sc.id)) {
+                fetchedAiCalls.push(sc);
+              }
+            }
+          }
+
           if (isMounted) {
+            setAiAppointments(fetchedAiAppts);
+            setAiCalls(fetchedAiCalls);
+            setIsLiveConnected(liveOnline || fetchedAiAppts.length > 0);
             setAiCounts({
-              appts: Array.isArray(storedAppts) ? storedAppts.length : 0,
+              appts: fetchedAiAppts.length,
               leads: Array.isArray(storedLeads) ? storedLeads.length : 0,
-              calls: Array.isArray(storedCalls) ? storedCalls.length : 0,
+              calls: fetchedAiCalls.length > 0 ? fetchedAiCalls.length : (Array.isArray(storedCalls) ? storedCalls.length : 0),
               tasks: Array.isArray(storedTasks) ? storedTasks.filter((t: any) => t.status === 'PENDING').length : 0,
             });
           }
@@ -75,9 +128,11 @@ export default function DashboardPage() {
 
     const handleStorage = () => loadData();
     window.addEventListener('storage', handleStorage);
+    const interval = setInterval(loadData, 3000);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
       window.removeEventListener('storage', handleStorage);
     };
   }, [canAccessAuditLogs]);
@@ -165,52 +220,121 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Middle Grid: Activity + Safeguards */}
+      {/* Middle Grid: AI Receptionist Live Activity + Hospital Safeguards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-[#111827]">System Operations & Audits</CardTitle>
-            {canAccessAuditLogs && (
-              <Link href="/audit-logs">
-                <Button variant="ghost" size="sm" className="gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8]">
-                  View all <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Button>
-              </Link>
-            )}
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-[#EFF6FF] text-[#2563EB]">
+                <Bot className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold text-[#111827]">
+                    AI Receptionist &amp; Outpatient Bookings
+                  </CardTitle>
+                  {isLiveConnected ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Connected
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-[#9CA3AF] border border-dashed border-[#D1D5DB] px-2 py-0.5 rounded-full">
+                      Offline Cache
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#6B7280]">Live bookings, caller inquiries and verified slot confirmations</p>
+              </div>
+            </div>
+            <Link href="/appointments">
+              <Button variant="ghost" size="sm" className="gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8]">
+                View all in Appointments <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" aria-label="Recent activity">
+              <table className="w-full text-sm" aria-label="AI Receptionist Bookings">
                 <thead>
                   <tr className="bg-[#F9FAFB] border-b border-[#F3F4F6]">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Action</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Target</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Patient &amp; Contact</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Doctor &amp; Department</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Slot Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Booking ID</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F3F4F6]">
-                  {recentLogs.length > 0 ? (
-                    recentLogs.map((log, idx) => (
-                      <tr key={idx} className="hover:bg-[#F9FAFB]/70 transition-colors">
-                        <td className="px-4 py-3.5 text-xs font-mono text-[#2563EB] font-medium">{log.action}</td>
-                        <td className="px-4 py-3.5 text-xs text-[#374151]">{log.auditableType} #{String(log.auditableId).slice(0, 8)}</td>
-                        <td className="px-4 py-3.5 text-right">
-                          <Badge variant="success" className="text-[10px]">Logged</Badge>
+                  {aiAppointments.length > 0 ? (
+                    aiAppointments.slice(0, 5).map((apt, idx) => (
+                      <tr key={apt.id || idx} className="hover:bg-[#F9FAFB]/70 transition-colors">
+                        <td className="px-4 py-3 text-xs">
+                          <div className="font-semibold text-[#111827]">{apt.patientName || 'Rajesh Sharma'}</div>
+                          <div className="text-[#6B7280] font-mono text-[11px]">{apt.patientPhone || '+91 98765 43210'}</div>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <div className="font-medium text-[#111827]">{apt.doctorName || 'Dr. Rahul Menon'}</div>
+                          <div className="text-[11px] text-[#2563EB] font-medium">{apt.department || 'Cardiology'}</div>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-mono text-[#374151]">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-[#9CA3AF]" />
+                            <span>{apt.time || 'Tomorrow 10:00 AM'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs font-mono">
+                          <span className="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-semibold">
+                            {apt.id}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Badge variant="success" className="text-[10px]">
+                            {apt.status || 'CONFIRMED'}
+                          </Badge>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-xs text-[#6B7280]">
-                        Operational audit entries are recorded securely in PostgreSQL.
+                      <td colSpan={5} className="px-4 py-8 text-center text-xs text-[#6B7280]">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Bot className="h-6 w-6 text-[#9CA3AF]" />
+                          <span>No AI appointments booked yet. Open the AI Voice Receptionist to test live booking.</span>
+                          <a
+                            href="http://localhost:8000/demo"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-[#2563EB] hover:underline mt-1"
+                          >
+                            Open AI Receptionist Portal <ArrowRight className="h-3 w-3" />
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
+
+            {/* Recent AI Receptionist Response / Call Logs Banner */}
+            {aiCalls.length > 0 && (
+              <div className="p-3 bg-[#F8FAFB] border-t border-[#F3F4F6] text-xs">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-semibold text-[#374151] flex items-center gap-1.5">
+                    <PhoneCall className="h-3.5 w-3.5 text-[#2563EB]" /> Latest Receptionist Call Interaction
+                  </span>
+                  <span className="text-[11px] text-[#6B7280] font-mono">
+                    {aiCalls[0].callerPhone} &bull; {aiCalls[0].intent || 'Appointment Booking'}
+                  </span>
+                </div>
+                <p className="text-[#4B5563] text-[11px] bg-white p-2 rounded-lg border border-[#E5E7EB]">
+                  &ldquo;{aiCalls[0].summary}&rdquo;
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
+
 
         {/* Security Safeguards */}
         <Card>

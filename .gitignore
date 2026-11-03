@@ -34,6 +34,7 @@ dist/
 build/
 .next/
 out/
+*.tsbuildinfo
 # Environment files
 .env*.local
 .env.development

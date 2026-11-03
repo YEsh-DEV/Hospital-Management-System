@@ -15,6 +15,7 @@ $AiDir = Join-Path $WorkspaceRoot "ai-voice-receptionist"
 
 if (-not (Test-Path "$ApiDir\.env")) { Copy-Item "$ApiDir\.env.example" "$ApiDir\.env" }
 if (-not (Test-Path "$WebDir\.env.local")) { Copy-Item "$WebDir\.env.example" "$WebDir\.env.local" }
+if (-not (Test-Path "$AiDir\.env")) { Copy-Item "$AiDir\.env.example" "$AiDir\.env" }
 
 Write-Host "`n[1/3] Starting NestJS Authoritative API (Port 4000)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$ApiDir'; npm run dev"

@@ -19,6 +19,7 @@ set AI_DIR=%ROOT%ai-voice-receptionist
 
 if not exist "%API_DIR%\.env" copy "%API_DIR%\.env.example" "%API_DIR%\.env" >nul
 if not exist "%WEB_DIR%\.env.local" copy "%WEB_DIR%\.env.example" "%WEB_DIR%\.env.local" >nul
+if not exist "%AI_DIR%\.env" copy "%AI_DIR%\.env.example" "%AI_DIR%\.env" >nul
 
 echo [1/3] Starting NestJS Authoritative API on port 4000...
 start "HMS NestJS API (Port 4000)" cmd /k "cd /d "%API_DIR%" && npm run dev"

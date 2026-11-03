@@ -115,18 +115,107 @@ export default function AppointmentsPage() {
     if (statusFilter !== 'ALL') {
       filters.status = statusFilter;
     }
-    const res = await apiClient.getAppointments(filters);
-    if (res?.data && Array.isArray(res.data)) {
-      setAppointments(res.data.map(mapApiAppointment));
-      setIsLive(true);
-    } else {
-      setAppointments(MOCK_APPOINTMENTS);
-      setIsLive(false);
+
+    let baseAppointments: AppointmentItem[] = [];
+    let liveConnected = false;
+
+    try {
+      const res = await apiClient.getAppointments(filters);
+      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        baseAppointments = res.data.map(mapApiAppointment);
+        liveConnected = true;
+      }
+    } catch {
+      // Handled below
     }
+
+    if (baseAppointments.length === 0) {
+      baseAppointments = [...MOCK_APPOINTMENTS];
+    }
+
+    // Load live AI appointments from ai-voice-receptionist service & browser storage
+    let aiAppointments: AppointmentItem[] = [];
+
+    // 1. Direct query to AI Voice Receptionist endpoint
+    try {
+      const aiRes = await fetch('http://localhost:8000/demo/appointments', { signal: AbortSignal.timeout(1200) });
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        if (Array.isArray(aiData)) {
+          aiAppointments = aiData.map((a: any) => ({
+            id: a.id,
+            patientName: a.patientName || 'Rajesh Sharma',
+            doctorName: a.doctorName || 'Dr. Rahul Menon',
+            department: a.department || 'Cardiology',
+            time: a.time || 'Tomorrow 10:00 AM',
+            status: (a.status || 'CONFIRMED') as AppointmentItem['status'],
+            source: 'AI Voice Receptionist',
+            isAi: true,
+          }));
+        }
+      }
+    } catch {
+      // Handled by localStorage fallback below
+    }
+
+    // 2. Check localStorage for appointments booked through AI console
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('advfiction_demo_appointments') || '[]');
+        if (Array.isArray(stored)) {
+          const existingIds = new Set(aiAppointments.map((a) => a.id));
+          for (const s of stored) {
+            if (!existingIds.has(s.id)) {
+              aiAppointments.push({
+                id: s.id,
+                patientName: s.patientName || 'Rajesh Sharma',
+                doctorName: s.doctorName || 'Dr. Rahul Menon',
+                department: s.department || 'Cardiology',
+                time: s.time || 'Tomorrow 10:00 AM',
+                status: (s.status || 'CONFIRMED') as AppointmentItem['status'],
+                source: 'AI Voice Receptionist',
+                isAi: true,
+              });
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // Merge AI appointments at the top of the table
+    const seenIds = new Set();
+    const merged: AppointmentItem[] = [];
+    for (const appt of [...aiAppointments, ...baseAppointments]) {
+      if (!seenIds.has(appt.id)) {
+        seenIds.add(appt.id);
+        merged.push(appt);
+      }
+    }
+
+    // Filter by status if applied
+    const finalAppointments = statusFilter !== 'ALL'
+      ? merged.filter((a) => a.status === statusFilter)
+      : merged;
+
+    setAppointments(finalAppointments);
+    setIsLive(liveConnected || aiAppointments.length > 0);
     setIsLoading(false);
   }, [statusFilter]);
 
-  useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => {
+    loadAppointments();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'advfiction_demo_appointments') {
+        loadAppointments();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    const interval = setInterval(loadAppointments, 4000);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
+  }, [loadAppointments]);
 
   // Load departments when booking modal opens
   useEffect(() => {

@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const { currentRole, currentUser, canAccessAuditLogs } = useRole();
   const [liveMetrics, setLiveMetrics] = useState<any>(null);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [aiCounts, setAiCounts] = useState({ appts: 0, leads: 0, calls: 0, tasks: 0 });
 
   useEffect(() => {
     let isMounted = true;
@@ -51,24 +52,45 @@ export default function DashboardPage() {
       } catch {
         // Fallback gracefully to default metrics
       }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const storedAppts = JSON.parse(localStorage.getItem('advfiction_demo_appointments') || '[]');
+          const storedLeads = JSON.parse(localStorage.getItem('advfiction_demo_leads') || '[]');
+          const storedCalls = JSON.parse(localStorage.getItem('advfiction_demo_calls') || '[]');
+          const storedTasks = JSON.parse(localStorage.getItem('advfiction_demo_tasks') || '[]');
+          if (isMounted) {
+            setAiCounts({
+              appts: Array.isArray(storedAppts) ? storedAppts.length : 0,
+              leads: Array.isArray(storedLeads) ? storedLeads.length : 0,
+              calls: Array.isArray(storedCalls) ? storedCalls.length : 0,
+              tasks: Array.isArray(storedTasks) ? storedTasks.filter((t: any) => t.status === 'PENDING').length : 0,
+            });
+          }
+        } catch {}
+      }
     }
 
     loadData();
 
+    const handleStorage = () => loadData();
+    window.addEventListener('storage', handleStorage);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('storage', handleStorage);
     };
   }, [canAccessAuditLogs]);
 
-  // Derived or fallback stats
-  const apptCount = liveMetrics?.appointments?.total !== undefined ? String(liveMetrics.appointments.total) : '42';
-  const apptSub = liveMetrics?.appointments
-    ? `${liveMetrics.appointments.confirmed} confirmed · ${liveMetrics.appointments.requested} requested`
-    : '34 confirmed · 8 pending';
+  // Derived stats with AI activity sync
+  const baseApptTotal = liveMetrics?.appointments?.total !== undefined ? liveMetrics.appointments.total : 42;
+  const baseApptConfirmed = liveMetrics?.appointments?.confirmed !== undefined ? liveMetrics.appointments.confirmed : 34;
+  const apptCount = String(baseApptTotal + aiCounts.appts);
+  const apptSub = `${baseApptConfirmed + aiCounts.appts} confirmed · ${liveMetrics?.appointments?.requested || 8} pending`;
 
-  const leadCount = liveMetrics?.leads?.total !== undefined ? String(liveMetrics.leads.total) : '14';
-  const callCount = liveMetrics?.calls?.total !== undefined ? String(liveMetrics.calls.total) : '28';
-  const taskCount = liveMetrics?.tasks?.pending !== undefined ? String(liveMetrics.tasks.pending) : '6';
+  const leadCount = String((liveMetrics?.leads?.total !== undefined ? liveMetrics.leads.total : 14) + aiCounts.leads);
+  const callCount = String((liveMetrics?.calls?.total !== undefined ? liveMetrics.calls.total : 28) + aiCounts.calls);
+  const taskCount = String((liveMetrics?.tasks?.pending !== undefined ? liveMetrics.tasks.pending : 6) + aiCounts.tasks);
 
   function getStatCards(role: RoleName) {
     switch (role) {

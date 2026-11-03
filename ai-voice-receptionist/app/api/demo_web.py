@@ -1,5 +1,6 @@
-"""Client Demonstration Web Console for MediSlot / HealthPulse AI Voice Receptionist.
-Designed to match the Advfiction HMS Dashboard theme and design system.
+"""Public-Facing Client Demonstration Web Console for MediSlot / HealthPulse AI Voice Receptionist.
+Designed as a public hospital virtual reception portal matching the Advfiction HMS aesthetic (colors, fonts, cards).
+No internal staff sidebar or Super Admin widget - intended for public patients and callers.
 """
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
@@ -11,7 +12,8 @@ DEMO_HTML = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advfiction HMS HealthPulse - Virtual AI Voice Receptionist</title>
+  <title>Advfiction Hospital HealthPulse - Virtual AI Voice Receptionist</title>
+  <meta name="description" content="Advfiction Hospital HealthPulse 24x7 Public AI Voice & Chat Receptionist">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,8 +26,6 @@ DEMO_HTML = """<!DOCTYPE html>
       --primary: #2563EB;
       --primary-hover: #1D4ED8;
       --primary-subtle: #EFF6FF;
-      --sidebar-bg: #0F172A;
-      --sidebar-border: rgba(255, 255, 255, 0.1);
       --text-muted: #6B7280;
       --accent-green: #10B981;
       --accent-amber: #F59E0B;
@@ -39,243 +39,159 @@ DEMO_HTML = """<!DOCTYPE html>
       color: var(--foreground);
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       font-size: 14px;
       line-height: 1.5;
     }
 
-    /* Left Sidebar: Fixed 256px matching Advfiction HMS */
-    aside.sidebar {
-      width: 256px;
-      background: var(--sidebar-bg);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      border-right: 1px solid var(--sidebar-border);
+    /* Public Header Bar */
+    header.public-header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--card-border);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
       position: sticky;
       top: 0;
-      height: 100vh;
-      z-index: 40;
+      z-index: 50;
     }
-    .sidebar-brand {
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-box {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 18px 16px;
-      border-bottom: 1px solid var(--sidebar-border);
     }
-    .brand-icon-box {
-      width: 36px;
-      height: 36px;
+    .brand-icon {
+      width: 40px;
+      height: 40px;
       border-radius: 10px;
       background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-weight: 700;
-      font-size: 18px;
+      font-size: 20px;
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
     }
-    .brand-text-box h2 {
-      color: #FFFFFF;
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-    .brand-text-box p {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 10px;
-      line-height: 1.2;
-    }
-    .sidebar-nav {
-      flex: 1;
-      padding: 16px 12px;
-      overflow-y: auto;
-    }
-    .nav-section-title {
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 4px 12px 8px;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      color: rgba(255, 255, 255, 0.65);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 4px;
-      transition: all 0.15s ease;
-    }
-    .nav-item:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: #FFFFFF;
-    }
-    .nav-item.active {
-      background: var(--primary);
-      color: #FFFFFF;
-      font-weight: 600;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-    }
-    .nav-icon {
-      font-size: 16px;
-      width: 18px;
-      display: inline-flex;
-      justify-content: center;
-    }
-    .sidebar-footer {
-      padding: 16px 14px;
-      border-top: 1px solid var(--sidebar-border);
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 11px;
-    }
-
-    /* Main Container */
-    .main-wrapper {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      min-height: 100vh;
-    }
-
-    /* Top Header */
-    header.top-header {
-      height: 56px;
-      background: #FFFFFF;
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 28px;
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    }
-    .header-title-box {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .header-title-box h1 {
-      font-size: 15px;
+    .brand-info h1 {
+      font-size: 17px;
       font-weight: 700;
       color: #111827;
+      line-height: 1.2;
       letter-spacing: -0.01em;
     }
-    .portal-tag {
-      background: #EFF6FF;
-      color: var(--primary);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-      border: 1px solid #DBEAFE;
+    .brand-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.2;
     }
-    .header-actions {
+    .header-right {
       display: flex;
       align-items: center;
       gap: 16px;
     }
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: white;
-      font-weight: 700;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .user-meta {
-      line-height: 1.2;
-    }
-    .user-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111827;
-    }
-    .user-role {
-      font-size: 10px;
-      font-weight: 600;
-      color: #9333EA;
-      background: #FAF5FF;
-      padding: 1px 6px;
-      border-radius: 4px;
-      display: inline-block;
-      margin-top: 1px;
-    }
-    .btn-portal {
+    .emergency-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--primary);
-      color: #FFFFFF;
-      padding: 7px 14px;
+      background: #FEE2E2;
+      border: 1px solid #FECACA;
+      color: #DC2626;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .staff-portal-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #FFFFFF;
+      border: 1px solid #D1D5DB;
+      color: #374151;
+      padding: 6px 14px;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
       text-decoration: none;
-      transition: background 0.15s;
+      transition: all 0.15s ease;
     }
-    .btn-portal:hover {
-      background: var(--primary-hover);
+    .staff-portal-link:hover {
+      background: #F9FAFB;
+      border-color: #9CA3AF;
+      color: #111827;
     }
 
-    /* Content Area */
-    main.content-area {
+    /* Main Container */
+    main.public-container {
       flex: 1;
-      padding: 24px 28px;
-      max-width: 1400px;
+      max-width: 1280px;
       width: 100%;
       margin: 0 auto;
+      padding: 24px 24px 40px;
     }
-    .page-heading {
-      margin-bottom: 22px;
+
+    /* Welcome Banner */
+    .banner-box {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+      border-radius: 16px;
+      padding: 24px 28px;
+      color: #FFFFFF;
+      margin-bottom: 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
     }
-    .page-heading h2 {
+    .banner-text h2 {
       font-size: 22px;
       font-weight: 700;
-      color: #111827;
       letter-spacing: -0.02em;
     }
-    .page-heading p {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 2px;
+    .banner-text p {
+      font-size: 13.5px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-top: 4px;
+      max-width: 700px;
+    }
+    .banner-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34D399;
+      box-shadow: 0 0 8px #34D399;
     }
 
-    /* Two-column layout (Clean scenarios on left, Console on right) */
-    .dashboard-grid {
+    /* Two-Column Patient Layout */
+    .patient-grid {
       display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 20px;
+      grid-template-columns: 360px 1fr;
+      gap: 22px;
       align-items: start;
     }
-    @media (max-width: 1024px) {
-      .dashboard-grid { grid-template-columns: 1fr; }
-      aside.sidebar { display: none; }
+    @media (max-width: 960px) {
+      .patient-grid { grid-template-columns: 1fr; }
+      .banner-box { flex-direction: column; align-items: flex-start; gap: 12px; }
     }
 
-    /* Enterprise White Card */
+    /* Clean Card */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -289,6 +205,7 @@ DEMO_HTML = """<!DOCTYPE html>
       display: flex;
       align-items: center;
       justify-content: space-between;
+      background: #FFFFFF;
     }
     .card-title {
       font-size: 14px;
@@ -301,8 +218,8 @@ DEMO_HTML = """<!DOCTYPE html>
     .card-badge {
       font-size: 11px;
       font-weight: 600;
-      background: #F3F4F6;
-      color: #4B5563;
+      background: var(--primary-subtle);
+      color: var(--primary);
       padding: 2px 8px;
       border-radius: 6px;
     }
@@ -310,7 +227,7 @@ DEMO_HTML = """<!DOCTYPE html>
       padding: 18px;
     }
 
-    /* Scenarios list */
+    /* Patient Quick Query Buttons */
     .scenario-btn {
       width: 100%;
       text-align: left;
@@ -330,7 +247,7 @@ DEMO_HTML = """<!DOCTYPE html>
       background: #F8FAFC;
       border-color: var(--primary);
       transform: translateY(-1px);
-      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.08);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
     }
     .scenario-name {
       font-size: 13px;
@@ -341,19 +258,35 @@ DEMO_HTML = """<!DOCTYPE html>
       gap: 6px;
     }
     .scenario-desc {
-      font-size: 11px;
-      color: #6B7280;
+      font-size: 11.5px;
+      color: var(--text-muted);
       line-height: 1.4;
     }
-    .tip-box {
+
+    /* Hospital Info Box */
+    .hospital-info-box {
       margin-top: 14px;
-      padding: 12px 14px;
-      background: #EFF6FF;
-      border: 1px solid #BFDBFE;
+      padding: 14px;
+      background: #F8FAFC;
+      border: 1px solid var(--card-border);
       border-radius: 10px;
-      color: #1E40AF;
       font-size: 12px;
-      line-height: 1.45;
+      color: #374151;
+      line-height: 1.5;
+    }
+    .hospital-info-box h4 {
+      font-size: 12px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 11.5px;
+      color: #4B5563;
     }
 
     /* Console Tabs */
@@ -361,8 +294,8 @@ DEMO_HTML = """<!DOCTYPE html>
       display: flex;
       background: #F8FAFC;
       border-bottom: 1px solid var(--card-border);
-      padding: 4px 6px 0;
-      gap: 4px;
+      padding: 6px 10px 0;
+      gap: 6px;
     }
     .tab-btn {
       padding: 10px 18px;
@@ -378,7 +311,6 @@ DEMO_HTML = """<!DOCTYPE html>
       display: flex;
       align-items: center;
       gap: 8px;
-      position: relative;
     }
     .tab-btn:hover {
       color: #111827;
@@ -392,7 +324,7 @@ DEMO_HTML = """<!DOCTYPE html>
       margin-bottom: -1px;
     }
 
-    /* Status Control Bar */
+    /* Console Sub-Bar */
     .control-bar {
       background: #FFFFFF;
       border-bottom: 1px solid var(--card-border);
@@ -519,7 +451,7 @@ DEMO_HTML = """<!DOCTYPE html>
       background: var(--primary);
       color: #FFFFFF;
       border: none;
-      padding: 10px 18px;
+      padding: 10px 20px;
       border-radius: 9px;
       font-size: 13px;
       font-weight: 600;
@@ -553,9 +485,9 @@ DEMO_HTML = """<!DOCTYPE html>
       animation: pulse 1.2s infinite;
     }
 
-    /* Inbound Phone Call Simulator View */
+    /* Phone Simulator Tab */
     .phone-simulator-box {
-      padding: 24px;
+      padding: 28px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -563,7 +495,7 @@ DEMO_HTML = """<!DOCTYPE html>
       background: #FFFFFF;
     }
     .phone-dialer-card {
-      max-width: 500px;
+      max-width: 520px;
       width: 100%;
       border: 1px solid var(--card-border);
       border-radius: 16px;
@@ -591,7 +523,7 @@ DEMO_HTML = """<!DOCTYPE html>
       color: #374151;
       font-size: 12px;
       font-weight: 600;
-      padding: 4px 12px;
+      padding: 4px 14px;
       border-radius: 20px;
       border: 1px solid #E5E7EB;
     }
@@ -669,275 +601,239 @@ DEMO_HTML = """<!DOCTYPE html>
       align-items: center;
       gap: 6px;
     }
+
+    /* Public Footer */
+    footer.public-footer {
+      border-top: 1px solid var(--card-border);
+      background: #FFFFFF;
+      padding: 18px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Left Sidebar (Matching Advfiction HMS Dashboard Layout) -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon-box">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-        </svg>
-      </div>
-      <div class="brand-text-box">
-        <h2>Advfiction HMS</h2>
-        <p>Hospital Management System</p>
-      </div>
-    </div>
-
-    <div class="sidebar-nav">
-      <div class="nav-section-title">Clinical Operations</div>
-      <a href="http://localhost:3000/dashboard" target="_blank" class="nav-item">
-        <span class="nav-icon">📊</span>
-        <span>Dashboard</span>
-      </a>
-      <a href="http://localhost:3000/patients" target="_blank" class="nav-item">
-        <span class="nav-icon">👥</span>
-        <span>Patients</span>
-      </a>
-      <a href="http://localhost:3000/appointments" target="_blank" class="nav-item">
-        <span class="nav-icon">📅</span>
-        <span>Appointments</span>
-      </a>
-      <a href="http://localhost:3000/doctors" target="_blank" class="nav-item">
-        <span class="nav-icon">🩺</span>
-        <span>Doctors & Schedules</span>
-      </a>
-      <a href="/demo" class="nav-item active">
-        <span class="nav-icon">🤖</span>
-        <span>AI Voice Receptionist</span>
-      </a>
-      <a href="http://localhost:3000/leads-calls" target="_blank" class="nav-item">
-        <span class="nav-icon">📞</span>
-        <span>Leads & Calls</span>
-      </a>
-      <a href="http://localhost:3000/audit-logs" target="_blank" class="nav-item">
-        <span class="nav-icon">🛡️</span>
-        <span>Audit Logs</span>
-      </a>
-      <a href="http://localhost:3000/settings" target="_blank" class="nav-item">
-        <span class="nav-icon">⚙️</span>
-        <span>Settings</span>
-      </a>
-    </div>
-
-    <div class="sidebar-footer">
-      <div>Advfiction HMS v1.0</div>
-      <div style="font-size:10px; margin-top:2px; color:rgba(255,255,255,0.25);">AI Telephony Voice Engine</div>
-    </div>
-  </aside>
-
-  <!-- Main Application Area -->
-  <div class="main-wrapper">
-    <!-- Top Header -->
-    <header class="top-header">
-      <div class="header-title-box">
-        <h1>Advfiction HMS</h1>
-        <span class="portal-tag">Virtual AI Receptionist</span>
+  <!-- Public Hospital Header -->
+  <header class="public-header">
+    <div class="header-inner">
+      <div class="brand-box">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="brand-info">
+          <h1>Advfiction Hospital</h1>
+          <p>24x7 Public Virtual AI Voice Receptionist</p>
+        </div>
       </div>
 
-      <div class="header-actions">
-        <a href="http://localhost:3000/appointments" target="_blank" class="btn-portal">
-          <span>Launch HMS Web Portal</span>
-          <span>&rarr;</span>
+      <div class="header-right">
+        <div class="emergency-badge">
+          <span>🚨 Emergency: 112</span>
+        </div>
+        <a href="http://localhost:3000/appointments" target="_blank" class="staff-portal-link">
+          <span>Staff HMS Portal &rarr;</span>
         </a>
+      </div>
+    </div>
+  </header>
 
-        <div class="user-pill">
-          <div class="user-avatar">SA</div>
-          <div class="user-meta">
-            <div class="user-name">Super Admin</div>
-            <div class="user-role">SUPER ADMIN</div>
+  <!-- Main Patient Interface Container -->
+  <main class="public-container">
+    <!-- Welcome Header Banner -->
+    <div class="banner-box">
+      <div class="banner-text">
+        <h2>Advfiction Hospital Reception Desk</h2>
+        <p>Welcome! Speak or chat with our automated hospital receptionist to check live doctor availability, book appointments, or inquire about emergency and insurance services.</p>
+      </div>
+      <div class="banner-status">
+        <div class="live-dot"></div>
+        <span>Receptionist Online</span>
+      </div>
+    </div>
+
+    <!-- Two-Column Clean Layout -->
+    <div class="patient-grid">
+      <!-- Left Column: Patient Quick Inquiries -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Patient Quick Inquiries</span>
+          </div>
+          <span class="card-badge">Instant Answers</span>
+        </div>
+
+        <div class="card-body">
+          <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+            Click any question to ask our AI Receptionist or practice speech recognition:
+          </p>
+
+          <button class="scenario-btn" onclick="runScenario('booking')">
+            <div class="scenario-name">1. Book Doctor Appointment</div>
+            <div class="scenario-desc">Consultation with Dr. Rahul Menon in Cardiology tomorrow morning.</div>
+          </button>
+
+          <button class="scenario-btn" onclick="runScenario('emergency')">
+            <div class="scenario-name">2. Emergency 112 Triage</div>
+            <div class="scenario-desc">Acute chest pain protocol & emergency ambulance redirection.</div>
+          </button>
+
+          <button class="scenario-btn" onclick="runScenario('insurance')">
+            <div class="scenario-name">3. Cashless Insurance & TPA</div>
+            <div class="scenario-desc">Star Health, HDFC ERGO cashless coverage & admission process.</div>
+          </button>
+
+          <button class="scenario-btn" onclick="runScenario('pharmacy')">
+            <div class="scenario-name">4. 24x7 Pharmacy & Lab</div>
+            <div class="scenario-desc">Emergency medicine counter & digital blood test turnaround times.</div>
+          </button>
+
+          <button class="scenario-btn" onclick="runScenario('handoff')">
+            <div class="scenario-name">5. Talk to Staff Receptionist</div>
+            <div class="scenario-desc">Request an automated callback from our hospital reception team.</div>
+          </button>
+
+          <!-- Hospital Info -->
+          <div class="hospital-info-box">
+            <h4>Hospital Information</h4>
+            <div class="info-item">📍 Advfiction Hospital & Research Institute</div>
+            <div class="info-item">⏰ OPD Clinics: Mon – Sat, 9:00 AM – 6:00 PM</div>
+            <div class="info-item">🚑 24x7 Emergency & Pharmacy Counter Open</div>
           </div>
         </div>
       </div>
-    </header>
 
-    <!-- Main Workspace Content -->
-    <main class="content-area">
-      <div class="page-heading">
-        <div>
-          <h2>Reception Enquiries & AI Voice Operations</h2>
-          <p>Interactive speech simulator, automated doctor appointment scheduling, and patient triage guardrails.</p>
-        </div>
-        <div>
-          <button onclick="resetCall()" class="btn-secondary" style="padding:8px 14px; font-weight:600;">
-            + Reset Session
+      <!-- Right Column: Interactive Voice & Chat Console -->
+      <div class="card">
+        <!-- Mode Navigation Tabs -->
+        <div class="tab-bar">
+          <button id="tabChat" class="tab-btn active" onclick="switchView('chat')">
+            <span>💬 Live Voice & Text Receptionist</span>
+          </button>
+          <button id="tabCall" class="tab-btn" onclick="switchView('call')">
+            <span>📞 Inbound Phone Call Simulator</span>
           </button>
         </div>
-      </div>
 
-      <!-- Two-Column Clean Layout -->
-      <div class="dashboard-grid">
-        <!-- Column 1: Clinical Demo Scenarios -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span>Clinical Demo Scenarios</span>
-            </div>
-            <span class="card-badge">5 Scenarios</span>
+        <!-- Status Control Sub-Bar -->
+        <div class="control-bar">
+          <div class="status-indicator">
+            <div class="pulse-dot"></div>
+            <span id="callStatusText">Connected to Advfiction AI Receptionist</span>
           </div>
 
-          <div class="card-body">
-            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
-              Click any scenario to showcase live speech recognition and automated hospital workflows:
-            </p>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; color:#4B5563;">
+              <input type="checkbox" id="ttsToggle" checked style="accent-color:var(--primary);">
+              <span>Voice Audio Output (TTS)</span>
+            </label>
 
-            <button class="scenario-btn" onclick="runScenario('booking')">
-              <div class="scenario-name">1. Outpatient Booking</div>
-              <div class="scenario-desc">Cardiology slot verification with Dr. Rahul Menon, caller confirmation & live booking persistence.</div>
+            <button onclick="resetCall()" class="btn-secondary">
+              New Inquiry
             </button>
-
-            <button class="scenario-btn" onclick="runScenario('emergency')">
-              <div class="scenario-name">2. Emergency 112 Triage</div>
-              <div class="scenario-desc">Acute chest pain safety guardrail with zero medical diagnosis & immediate emergency redirection.</div>
-            </button>
-
-            <button class="scenario-btn" onclick="runScenario('insurance')">
-              <div class="scenario-name">3. Cashless Insurance & TPA</div>
-              <div class="scenario-desc">Star Health, HDFC ERGO, Care Health cashless hospitalization guidance & TPA desk desk hours.</div>
-            </button>
-
-            <button class="scenario-btn" onclick="runScenario('pharmacy')">
-              <div class="scenario-name">4. 24x7 Pharmacy & Lab</div>
-              <div class="scenario-desc">Emergency medicine access counter and digital blood test delivery turnaround times.</div>
-            </button>
-
-            <button class="scenario-btn" onclick="runScenario('handoff')">
-              <div class="scenario-name">5. Staff Callback Handoff</div>
-              <div class="scenario-desc">Complex enquiry escalation & automatic CRM follow-up callback task generation.</div>
-            </button>
-
-            <div class="tip-box">
-              <strong>Demo Tip:</strong> When an appointment confirms, switch to the <em>HMS Web Portal &rarr; Appointments</em> or <em>Leads & Calls</em> to see the record saved in real time!
-            </div>
           </div>
         </div>
 
-        <!-- Column 2: Center Virtual Receptionist Console -->
-        <div class="card">
-          <!-- Mode Navigation Tabs -->
-          <div class="tab-bar">
-            <button id="tabChat" class="tab-btn active" onclick="switchView('chat')">
-              <span>💬 Live Voice & Text Receptionist</span>
-            </button>
-            <button id="tabCall" class="tab-btn" onclick="switchView('call')">
-              <span>📞 Inbound Telephone Simulator</span>
-            </button>
+        <!-- TAB 1: Chat & Web Audio -->
+        <div id="chatView" style="display:flex; flex-direction:column;">
+          <div id="micStatusBanner" style="display:none; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; padding:8px 14px; font-size:12px; font-weight:500;">
+            <span id="micStatusText">🎙️ Listening to your voice... Speak clearly.</span>
           </div>
 
-          <!-- Status Control Sub-Bar -->
-          <div class="control-bar">
-            <div class="status-indicator">
-              <div class="pulse-dot"></div>
-              <span id="callStatusText">Connected to Advfiction AI</span>
-            </div>
-
-            <div style="display:flex; align-items:center; gap:14px;">
-              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; color:#4B5563;">
-                <input type="checkbox" id="ttsToggle" checked style="accent-color:var(--primary);">
-                <span>Voice Audio Output (TTS)</span>
-              </label>
-
-              <button onclick="resetCall()" class="btn-secondary">
-                New Session
-              </button>
-            </div>
-          </div>
-
-          <!-- TAB 1: Chat & Web Audio -->
-          <div id="chatView" style="display:flex; flex-direction:column;">
-            <div id="micStatusBanner" style="display:none; background:#FEF3C7; border:1px solid #FDE68A; color:#92400E; padding:8px 14px; font-size:12px; font-weight:500;">
-              <span id="micStatusText">🎙️ Listening to your voice... Speak clearly.</span>
-            </div>
-
-            <div class="messages-stream" id="messagesContainer">
-              <div class="msg-row ai">
-                <div class="msg-bubble">
-                  Hello! Welcome to <strong>Advfiction Hospital</strong> virtual reception. I can check live doctor availability, book consultation appointments, and answer questions regarding hospital services and cashless insurance. How may I assist you today?
-                </div>
-                <div class="msg-meta">🩺 Advfiction AI Receptionist &bull; Voice Engine</div>
+          <div class="messages-stream" id="messagesContainer">
+            <div class="msg-row ai">
+              <div class="msg-bubble">
+                Hello! Welcome to <strong>Advfiction Hospital</strong>. I can check live doctor availability, book consultation appointments, and answer questions regarding hospital services and cashless insurance. How may I assist you today?
               </div>
-            </div>
-
-            <div class="input-bar">
-              <button id="micBtn" onclick="toggleMic()" class="btn-mic" title="Speak to AI via Microphone">
-                <span id="micIcon">🎙️</span> <span id="micLabel">Speak</span>
-              </button>
-              <input type="text" id="userInput" class="chat-input" placeholder="Type your inquiry or click Speak to use your voice..." onkeydown="if(event.key==='Enter') sendMessage()">
-              <button onclick="sendMessage()" class="btn-send">
-                Send
-              </button>
+              <div class="msg-meta">🩺 Advfiction AI Receptionist &bull; Voice Engine</div>
             </div>
           </div>
 
-          <!-- TAB 2: Inbound Phone Call Simulator -->
-          <div id="callView" class="phone-simulator-box" style="display:none;">
-            <div class="phone-dialer-card">
-              <div class="phone-avatar-circle" id="phoneAvatar">📞</div>
-              <h3 style="font-size:17px; font-weight:700; color:#111827;" id="phoneHeader">Advfiction Hospital Reception Line</h3>
-              <p style="font-size:12px; color:#6B7280; margin-top:2px;" id="phoneSub">Inbound Line: +1 (775) 306-7525 &bull; Twilio Verified</p>
-              <div class="phone-timer-badge" id="phoneTimer">00:00 &bull; Ready to Connect</div>
+          <div class="input-bar">
+            <button id="micBtn" onclick="toggleMic()" class="btn-mic" title="Speak via Microphone">
+              <span id="micIcon">🎙️</span> <span id="micLabel">Speak</span>
+            </button>
+            <input type="text" id="userInput" class="chat-input" placeholder="Type your inquiry or click Speak to use your voice..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()" class="btn-send">
+              Send
+            </button>
+          </div>
+        </div>
 
-              <!-- Pre-Call State -->
-              <div id="preCallState">
-                <p style="font-size:12.5px; color:#4B5563; margin-bottom:18px; line-height:1.5;">
-                  Simulate an actual incoming telephone call from <strong>+91 98765 43210</strong>. Tests the speech webhook pipeline, live TTS speech, and triggers post-call staff summaries.
-                </p>
-                <button onclick="startPhoneCall()" class="btn-call-start">
-                  <span>📞 Dial Hospital Virtual Reception</span>
+        <!-- TAB 2: Inbound Phone Call Simulator -->
+        <div id="callView" class="phone-simulator-box" style="display:none;">
+          <div class="phone-dialer-card">
+            <div class="phone-avatar-circle" id="phoneAvatar">📞</div>
+            <h3 style="font-size:17px; font-weight:700; color:#111827;" id="phoneHeader">Advfiction Hospital Reception Line</h3>
+            <p style="font-size:12px; color:#6B7280; margin-top:2px;" id="phoneSub">Inbound Line: +1 (775) 306-7525 &bull; Twilio Verified</p>
+            <div class="phone-timer-badge" id="phoneTimer">00:00 &bull; Ready to Connect</div>
+
+            <!-- Pre-Call State -->
+            <div id="preCallState">
+              <p style="font-size:12.5px; color:#4B5563; margin-bottom:18px; line-height:1.5;">
+                Simulate an incoming patient call from <strong>+91 98765 43210</strong>. Tests the speech pipeline, live TTS voice replies, and creates post-call clinical summary logs.
+              </p>
+              <button onclick="startPhoneCall()" class="btn-call-start">
+                <span>📞 Dial Hospital Virtual Reception</span>
+              </button>
+            </div>
+
+            <!-- In-Call State -->
+            <div id="inCallState" style="display:none;">
+              <div style="margin-bottom:14px; font-size:12px; color:var(--accent-green); font-weight:600;">
+                🔊 Call In Progress &bull; Audio Stream Active
+              </div>
+
+              <p style="font-size:11.5px; color:#6B7280; margin-bottom:8px;">Click a caller response or speak into your microphone:</p>
+              <div class="quick-chips-wrapper">
+                <span class="quick-chip" onclick="speakAsCaller('I need an appointment with Dr. Rahul Menon tomorrow morning.')">"Book Dr. Rahul Menon"</span>
+                <span class="quick-chip" onclick="speakAsCaller('Yes, that time is fine. Please confirm the booking.')">"Confirm Booking"</span>
+                <span class="quick-chip" onclick="speakAsCaller('Do you accept Star Health cashless insurance?')">"Star Health Insurance"</span>
+                <span class="quick-chip" onclick="speakAsCaller('I want to speak with a human receptionist.')">"Staff Callback"</span>
+                <span class="quick-chip" onclick="speakAsCaller('Help, my father has acute chest pain!')">"Emergency 112"</span>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top:20px;">
+                <button id="callMicBtn" onclick="toggleCallMic()" class="btn-mic" style="flex:1; justify-content:center;">
+                  🎙️ Speak to Receptionist
+                </button>
+                <button onclick="endPhoneCall()" class="btn-call-end">
+                  🛑 End Call (Hang Up)
                 </button>
               </div>
+            </div>
 
-              <!-- In-Call State -->
-              <div id="inCallState" style="display:none;">
-                <div style="margin-bottom:14px; font-size:12px; color:var(--accent-green); font-weight:600;">
-                  🔊 Call In Progress &bull; Audio Active
+            <!-- Post-Call Summary -->
+            <div id="postCallState" style="display:none;">
+              <div class="summary-box">
+                <div class="summary-heading">
+                  <span>✅ Structured Clinical Call Summary Generated</span>
                 </div>
-
-                <p style="font-size:11.5px; color:#6B7280; margin-bottom:8px;">Click a caller response or speak into your microphone:</p>
-                <div class="quick-chips-wrapper">
-                  <span class="quick-chip" onclick="speakAsCaller('I need an appointment with Dr. Rahul Menon tomorrow morning.')">"Book Dr. Rahul Menon"</span>
-                  <span class="quick-chip" onclick="speakAsCaller('Yes, that time is fine. Please confirm the booking.')">"Confirm Booking"</span>
-                  <span class="quick-chip" onclick="speakAsCaller('Do you accept Star Health cashless insurance?')">"Star Health Insurance"</span>
-                  <span class="quick-chip" onclick="speakAsCaller('I want to speak with a human receptionist.')">"Staff Callback"</span>
-                  <span class="quick-chip" onclick="speakAsCaller('Help, my father has acute chest pain!')">"Emergency 112"</span>
-                </div>
-
-                <div style="display:flex; gap:10px; margin-top:20px;">
-                  <button id="callMicBtn" onclick="toggleCallMic()" class="btn-mic" style="flex:1; justify-content:center;">
-                    🎙️ Speak to Receptionist
-                  </button>
-                  <button onclick="endPhoneCall()" class="btn-call-end">
-                    🛑 End Call (Hang Up)
-                  </button>
-                </div>
+                <p id="summaryText" style="color:#374151;">Call ended. Generating clinical outcome notes...</p>
               </div>
-
-              <!-- Post-Call Summary -->
-              <div id="postCallState" style="display:none;">
-                <div class="summary-box">
-                  <div class="summary-heading">
-                    <span>✅ Structured Clinical Call Summary Generated</span>
-                  </div>
-                  <p id="summaryText" style="color:#374151;">Call ended. Generating clinical outcome notes...</p>
-                </div>
-                <div style="display:flex; gap:10px; margin-top:16px;">
-                  <button onclick="startPhoneCall()" class="btn-send" style="flex:1; justify-content:center;">
-                    📞 Make Another Call
-                  </button>
-                  <a href="http://localhost:3000/leads-calls" target="_blank" class="btn-secondary" style="flex:1; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center;">
-                    View in Leads & Calls &rarr;
-                  </a>
-                </div>
+              <div style="display:flex; gap:10px; margin-top:16px;">
+                <button onclick="startPhoneCall()" class="btn-send" style="flex:1; justify-content:center;">
+                  📞 Make Another Call
+                </button>
+                <button onclick="switchView('chat')" class="btn-secondary" style="flex:1; justify-content:center;">
+                  Back to Chat
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </main>
-  </div>
+    </div>
+  </main>
+
+  <!-- Public Footer -->
+  <footer class="public-footer">
+    Advfiction Hospital &bull; Powered by HealthPulse AI Voice Receptionist Engine &bull; All Rights Reserved.
+  </footer>
 
   <script>
     let sessionId = null;
@@ -962,7 +858,7 @@ DEMO_HTML = """<!DOCTYPE html>
       }
     }
 
-    // --- Speech Recognition with Robust Permission Handling ---
+    // --- Speech Recognition ---
     function initRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return null;
@@ -1082,7 +978,7 @@ DEMO_HTML = """<!DOCTYPE html>
       }, 1000);
 
       // AI speaks greeting
-      const greeting = "Hello, you have reached Advfiction Hospital virtual reception. I can help with doctor availability, appointment bookings, and hospital FAQs. How can I help you today?";
+      const greeting = "Hello, you have reached Advfiction Hospital. I can help with doctor availability, appointment bookings, and hospital FAQs. How can I help you today?";
       speakText(greeting);
       appendMessage('ai', greeting, 'Virtual Receptionist (Inbound Call)');
     }
@@ -1105,7 +1001,6 @@ DEMO_HTML = """<!DOCTYPE html>
       const endedSession = sessionId;
       sessionId = null; // Clean state for next turn
 
-      // Fetch or finalize summary
       if (endedSession) {
         try {
           const res = await fetch(`/api/chat/${endedSession}/end`, {
@@ -1140,9 +1035,8 @@ DEMO_HTML = """<!DOCTYPE html>
       if (!customText) input.value = '';
 
       // Append user message
-      appendMessage('user', text, 'Caller (You)');
+      appendMessage('user', text, 'You (Patient/Caller)');
 
-      // Call AI endpoint with automatic session recovery
       try {
         let res = await fetch('/api/chat', {
           method: 'POST',
@@ -1157,8 +1051,7 @@ DEMO_HTML = """<!DOCTYPE html>
           })
         });
 
-        // If the session was already completed (409 Conflict) or unknown (404),
-        // seamlessly auto-renew with a fresh session without breaking the conversation
+        // Auto-renew if session was completed (409) or unknown (404)
         if (res.status === 409 || res.status === 404) {
           sessionId = null;
           res = await fetch('/api/chat', {
@@ -1180,14 +1073,13 @@ DEMO_HTML = """<!DOCTYPE html>
         }
 
         const data = await res.json();
-        // If the call ended in this turn, clear sessionId so the next turn starts fresh
         if (data.ended) {
           sessionId = null;
         } else {
           sessionId = data.session_id;
         }
 
-        appendMessage('ai', data.reply, 'Advfiction AI Receptionist');
+        appendMessage('ai', data.reply, 'Advfiction Receptionist');
         speakText(data.reply);
       } catch (err) {
         appendMessage('ai', "I apologize, our reception system experienced a brief network issue: " + err.message + ". Please try again.", 'System Notice');
@@ -1211,7 +1103,7 @@ DEMO_HTML = """<!DOCTYPE html>
       document.getElementById('messagesContainer').innerHTML = `
         <div class="msg-row ai">
           <div class="msg-bubble">
-            Hello! Welcome to <strong>Advfiction Hospital</strong> virtual reception. How can I assist you today?
+            Hello! Welcome to <strong>Advfiction Hospital</strong>. How can I assist you today?
           </div>
           <div class="msg-meta">🩺 Advfiction AI Receptionist &bull; Voice Engine</div>
         </div>

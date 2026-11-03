@@ -55,26 +55,30 @@ flowchart TB
 
 ---
 
-## ⚡ Quick Start: One-Click Demo Launch
+## ⚡ Quick Start: One-Click Full-Stack Demo Launch
 
-Ensure you have Node.js 18+ and a running PostgreSQL instance (or Neon connection string).
+Launch all three integrated system tiers simultaneously:
+1. **NestJS Authoritative API Server** (Port 4000)
+2. **Next.js Administrative & Clinical Web Portal** (Port 3000)
+3. **AI Voice Receptionist Public Portal & API** (Port 8000)
 
-### Option 1: PowerShell (Windows)
-```powershell
-.\scripts\demo-start.ps1
-```
-
-### Option 2: Windows Batch
+### Option 1: Windows Batch (Double-click or run from CMD)
 ```cmd
-scripts\demo-start.bat
+demo-all.bat
 ```
 
-The script automatically:
-1. Validates PostgreSQL connectivity (`DATABASE_URL`).
-2. Pushes the schema and runs Prisma client generation.
-3. Seeds the database with **8 doctors**, **20 patients**, **30 appointments**, **10 leads**, **10 tasks**, and **6 call logs**.
-4. Starts the NestJS API on [http://localhost:4000](http://localhost:4000).
-5. Starts the Next.js Web App on [http://localhost:3000](http://localhost:3000).
+### Option 2: PowerShell (Windows)
+```powershell
+.\demo-all.ps1
+```
+
+> **Automated Environment Setup**: The launchers automatically inspect and initialize `.env` and `.env.local` files across all workspaces from their respective `.env.example` templates if not already present.
+>
+> **Interactive Clinical AI Terminal**: To test the standalone clinical conversational simulator in terminal mode, run:
+> ```cmd
+> demo-ai-voice.bat
+> ```
+> or `.\demo-ai-voice.ps1`
 
 ---
 
@@ -170,12 +174,37 @@ To connect the voice receptionist directly to your local NestJS backend:
    ```
 3. Run the automated Python test suite and start the service:
    ```powershell
-   # Run all 78 pytest unit and integration tests
-   pytest -q
+   # Run all 84 pytest unit and integration tests
+   pytest
 
    # Start FastAPI server (port 8000)
    uvicorn app.main:app --reload --port 8000
    ```
+
+---
+
+## 🧪 Automated Testing & Git Cache Policy
+
+### Running the Test Suites
+
+1. **Backend Tests (NestJS / Jest)**:
+   ```powershell
+   cd apps/api
+   npm test
+   ```
+   *Runs 44 tests across 4 suites (`test/schedule-and-slots.spec.ts`, `test/integrated-journeys.spec.ts`, `test/ai-voice-integration.spec.ts`, `test/verification-matrix.spec.ts`). All 44 tests pass.*
+
+2. **AI Voice Receptionist Tests (Python / Pytest)**:
+   ```powershell
+   cd ai-voice-receptionist
+   pytest
+   ```
+   *Runs 84 unit and integration tests covering slot checking, two-stage booking confirmations, cancellation verifications, and CRM call sync. All 84 tests pass.*
+
+### Note on `.pytest_cache` and `__pycache__`
+
+- **Why they are excluded from Git**: `.pytest_cache`, `__pycache__`, and `*.pyc` files are machine-specific compiled bytecode and test run metadata generated locally at runtime.
+- **Team Collaboration**: They are intentionally listed in `.gitignore`. When teammates pull the code and run `pytest` or `npm run dev`, Python and Pytest automatically generate fresh local caches in milliseconds tailored to their local environment and Python version, preventing merge conflicts, platform path errors, and repository bloat.
 
 ---
 
